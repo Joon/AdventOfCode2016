@@ -51,6 +51,7 @@
     <Compile Include="Puzzle2.cs" />
     <Compile Include="Puzzle3.cs" />
     <Compile Include="Puzzle3b.cs" />
+    <Compile Include="Puzzle4b.cs" />
     <Compile Include="Puzzle4.cs" />
   </ItemGroup>
   <ItemGroup>

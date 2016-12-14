@@ -7,15 +7,17 @@ using System.Threading.Tasks;
 
 namespace AdventOfCodeCSharp
 {
+    class CryptoWord
+    {
+        public string Word { get; set; }
+        public int SectorId { get; set; }
+        public string Hash { get; set; }
+        public bool Valid { get; set; }
+    }
+
     public class Puzzle4
     {
-        class CryptoWord
-        {
-            public string Word { get; set; }
-            public int SectorId { get; set; }
-            public string Hash { get; set; }
-            public bool Valid { get; set; }
-        }
+        
         public int ProcessPuzzle(string input)
         {
             int validIDSum = 0;
@@ -35,7 +37,6 @@ namespace AdventOfCodeCSharp
                             select new { Character = g.Key, Count = g.Count() };
                 List<dynamic> list = qry.ToList<dynamic>();
                 list.Sort((b, a) => a.Count.CompareTo(b.Count) == 0 ? b.Character.CompareTo(a.Character) : a.Count.CompareTo(b.Count));
-                // Sort is busted
                 var qry2 = from v in list
                            select (char)v.Character;
                 string compareHash = new string(qry2.Take(5).ToArray());

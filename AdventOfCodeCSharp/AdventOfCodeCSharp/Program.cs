@@ -60,6 +60,10 @@ namespace AdventOfCodeCSharp
                     var puzzle4 = new Puzzle4();
                     intAnswer = puzzle4.ProcessPuzzle(input);
                     break;
+                case "4b":
+                    var puzzle4b = new Puzzle4b();
+                    stringAnswer = puzzle4b.ProcessPuzzle(input);
+                    break;
             }
             if (!string.IsNullOrEmpty(stringAnswer))
             {
