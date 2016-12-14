@@ -53,6 +53,8 @@
     <Compile Include="Puzzle3b.cs" />
     <Compile Include="Puzzle4b.cs" />
     <Compile Include="Puzzle4.cs" />
+    <Compile Include="Puzzle5b.cs" />
+    <Compile Include="Puzzle5.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
