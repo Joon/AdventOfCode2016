@@ -72,6 +72,30 @@ namespace AdventOfCodeCSharp
                     var puzzle5b = new Puzzle5b();
                     stringAnswer = puzzle5b.ProcessPuzzle(input);
                     break;
+                case "6":
+                    var puzzle6 = new Puzzle6();
+                    stringAnswer = puzzle6.ProcessPuzzle(input);
+                    break;
+                case "6b":
+                    var puzzle6b = new Puzzle6();
+                    stringAnswer = puzzle6b.ProcessPuzzleB(input);
+                    break;
+                case "7":
+                    var puzzle7 = new Puzzle7();
+                    intAnswer = puzzle7.ProcessPuzzle(input);
+                    break;
+                case "7b":
+                    var puzzle7b = new Puzzle7();
+                    intAnswer = puzzle7b.ProcessPuzzleB(input);
+                    break;
+                case "8":
+                    var puzzle8 = new Puzzle8();
+                    intAnswer = puzzle8.CalculatePuzzle(input);
+                    break;
+                case "8b":
+                    var puzzle8b = new Puzzle8();
+                    stringAnswer = puzzle8b.ParsePuzzle(input);
+                    break;
             }
             if (!string.IsNullOrEmpty(stringAnswer))
             {

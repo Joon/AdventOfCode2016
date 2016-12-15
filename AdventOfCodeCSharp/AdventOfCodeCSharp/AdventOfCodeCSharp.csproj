@@ -55,6 +55,14 @@
     <Compile Include="Puzzle4.cs" />
     <Compile Include="Puzzle5b.cs" />
     <Compile Include="Puzzle5.cs" />
+    <Compile Include="Puzzle6.cs" />
+    <Compile Include="Puzzle7.cs" />
+    <Compile Include="Puzzle8.cs" />
+    <Compile Include="Puzzle8Assets\BaseCommand.cs" />
+    <Compile Include="Puzzle8Assets\CommandFactory.cs" />
+    <Compile Include="Puzzle8Assets\RectCommand.cs" />
+    <Compile Include="Puzzle8Assets\RotateColumnCommand.cs" />
+    <Compile Include="Puzzle8Assets\RotateRowCommand.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
