@@ -29,6 +29,7 @@ namespace AdventOfCodeCSharp
             }
 
             int intAnswer = -9999;
+            long reallyBigIntAnswer = -9999;
             string stringAnswer = "";
             switch (puzzle)
             {
@@ -96,12 +97,23 @@ namespace AdventOfCodeCSharp
                     var puzzle8b = new Puzzle8();
                     stringAnswer = puzzle8b.ParsePuzzle(input);
                     break;
+                case "9":
+                    var puzzle9 = new Puzzle9();
+                    intAnswer = puzzle9.CalculateFileLength(input);
+                    break;
+                case "9b":
+                    var puzzle9b = new Puzzle9();
+                    reallyBigIntAnswer = puzzle9b.CalculateBetaProtocolFileLength(input);
+                    break;
             }
             if (!string.IsNullOrEmpty(stringAnswer))
             {
                 Console.WriteLine("Processing complete. Answer: " + stringAnswer);
             }
-            else
+            else if (reallyBigIntAnswer > 0)
+            {
+                Console.WriteLine("Processing complete. Answer: " + reallyBigIntAnswer.ToString());
+            } else
             {
                 Console.WriteLine("Processing complete. Answer: " + intAnswer.ToString());
             }

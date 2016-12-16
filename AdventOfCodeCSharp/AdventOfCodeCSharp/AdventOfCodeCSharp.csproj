@@ -63,6 +63,7 @@
     <Compile Include="Puzzle8Assets\RectCommand.cs" />
     <Compile Include="Puzzle8Assets\RotateColumnCommand.cs" />
     <Compile Include="Puzzle8Assets\RotateRowCommand.cs" />
+    <Compile Include="Puzzle9.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
