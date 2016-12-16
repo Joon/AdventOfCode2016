@@ -33,7 +33,9 @@ namespace AdventOfCodeCSharp
 
     class Puzzle9
     {
-
+        /// <summary>
+        /// Calculate one level of expansion instructions
+        /// </summary>
         public int CalculateFileLength(string input)
         {
             var instructions = new List<FileCompressionInstruction>();
@@ -46,6 +48,11 @@ namespace AdventOfCodeCSharp
             return cleanedInput.Length + countExpansions.Sum();
         }
 
+        /// <summary>
+        /// Calculates all expanded text. Instead of performing the expansion, a 
+        /// tree of expansion instructions is built. Then we calculate the actual
+        /// file length by calculating the effect of all the expansions
+        /// </summary>
         public long CalculateBetaProtocolFileLength(string input)
         {
             string cleanedInput;
@@ -57,30 +64,51 @@ namespace AdventOfCodeCSharp
             return CalcExpandedInstructionLength(rootInstruction); 
         }
 
+        /// <summary>
+        /// Recursively calculates the instruction length
+        /// </summary>
         private long CalcExpandedInstructionLength(FileCompressionInstruction rootInstruction)
         {
+            // Get the length of the clean text in this instruction
             long result = rootInstruction.CharCount;
 
+            // recurse down the hierarchy, adding up all expanded values as we go
             foreach(var childInstruction in rootInstruction.UnpackedInstructions)
             {
                 result += CalcExpandedInstructionLength(childInstruction);
             }
 
+            // Now take the hierarchy length, and multiply it with this item's count of repeats
             return result * rootInstruction.Repeats;
         }
 
+        /// <summary>
+        /// Recursively expands any instructions left in the sourcetext of the supplied instruction.
+        /// </summary>
         private void ExpandInstructions(FileCompressionInstruction rootInstruction)
         {
             foreach(FileCompressionInstruction instruction in rootInstruction.UnpackedInstructions)
             {
                 string cleanedSource;
                 ParseFileInstructions(instruction.SourceText, instruction.UnpackedInstructions, out cleanedSource);
+                // Update the source text, child instructions are now kept. note that repeats stay the same
                 instruction.SourceText = cleanedSource;
+                // Character count has to be kept up to date
                 instruction.CharCount = cleanedSource.Length;
                 ExpandInstructions(instruction);
             }
         }
 
+        /// <summary>
+        /// Take a string that may contain expanding instructions 
+        /// Example 1: "(1x3)a" becomes "", and an instruction is returned that indicates that A 
+        /// should be multipled 3 times
+        /// Example 2: "pp(5x2)(1x3)f" becomes "pp", and an instruction is returned that indicates 
+        ///            that "(1x3)f should be repeated 2 times
+        ///            
+        /// Note that we don't attempt to unpack all the files, instead we reprocess our recursive data structure 
+        /// in a controlling routine to unpack the child instructions
+        /// </summary>
         private void ParseFileInstructions(string input, List<FileCompressionInstruction> instructions, 
             out string cleanedInput)
         {
