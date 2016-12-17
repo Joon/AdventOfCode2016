@@ -105,6 +105,14 @@ namespace AdventOfCodeCSharp
                     var puzzle9b = new Puzzle9();
                     reallyBigIntAnswer = puzzle9b.CalculateBetaProtocolFileLength(input);
                     break;
+                case "10":
+                    var puzzle10 = new Puzzle10();
+                    intAnswer = puzzle10.ProcessPuzzle(input);
+                    break;
+                case "10b":
+                    var puzzle10b = new Puzzle10();
+                    intAnswer = puzzle10b.ProcessPuzzleOutputs(input);
+                    break;
             }
             if (!string.IsNullOrEmpty(stringAnswer))
             {
