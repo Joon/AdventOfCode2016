@@ -51,6 +51,14 @@
     <Compile Include="Puzzle10Assets\BotNet.cs" />
     <Compile Include="Puzzle10Assets\CommandParser.cs" />
     <Compile Include="Puzzle10Assets\Output.cs" />
+    <Compile Include="Puzzle11.cs" />
+    <Compile Include="Puzzle11Assets\Building.cs" />
+    <Compile Include="Puzzle11Assets\BuildingMaker.cs" />
+    <Compile Include="Puzzle11Assets\Floor.cs" />
+    <Compile Include="Puzzle11Assets\Generator.cs" />
+    <Compile Include="Puzzle11Assets\BuildingMove.cs" />
+    <Compile Include="Puzzle11Assets\Microchip.cs" />
+    <Compile Include="Puzzle11Assets\MoveMaker.cs" />
     <Compile Include="Puzzle1b.cs" />
     <Compile Include="Puzzle1.cs" />
     <Compile Include="Puzzle2b.cs" />
