@@ -39,7 +39,7 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
                 MicroChips.Sort((a, b) => a.MicrochipNumber.CompareTo(b.MicrochipNumber));
                 foreach (var chip in MicroChips)
                 {
-                    result += "MC" + chip.MicrochipNumber;
+                    result += "C" + chip.MicrochipNumber;
                 }
                 Generators.Sort((a, b) => a.GeneratorNumber.CompareTo(b.GeneratorNumber));
                 foreach (var gen in Generators)

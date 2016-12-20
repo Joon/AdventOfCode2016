@@ -83,6 +83,15 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
             return commandState;
         }
 
-
+        public Building BuildingForPuzzle2Input()
+        {
+            Building commandState = BuildingForPuzzleInput();
+            Floor floor1 = commandState.Floors[0];
+            floor1.Generators.Add(new Generator() { GeneratorNumber = 2, Identifier = "elerium" });
+            floor1.MicroChips.Add(new Microchip() { MicrochipNumber = 1, Identifier = "elerium" });
+            floor1.Generators.Add(new Generator() { GeneratorNumber = 2, Identifier = "dilithium" });
+            floor1.MicroChips.Add(new Microchip() { MicrochipNumber = 1, Identifier = "dilithium" });
+            return commandState;
+        }
     }
 }

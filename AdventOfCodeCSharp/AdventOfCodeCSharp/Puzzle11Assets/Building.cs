@@ -64,15 +64,49 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
             return result;
         }
 
-        public string Hash()
+        int[] microchipHashKeys = { 1, 2, 4, 8, 16, 32, 64, 128 };
+        int[] generatorHashKeys = { 256, 512, 1024, 2048, 4096, 8192, 16384 };
+        int elevatorPresentKey = 32768;
+
+        public long Hash()
+        {
+            long result = 0;
+            // We hash the floors using two bytes per floor (one for generators, one for microchips) with one of the generator bits used
+            // to store the elevator present flag
+            // 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
+            // |             f4               |               f3              |              f2                |              f1
+            // e g g g g g g g m m m m m m m m e g g g g g g g m m m m m m m m e g g g g g g g m m m m m m m m e g g g g g g g m m m m m m m m   
+            for (int floor = 0; floor < 4; floor++)
+            {
+                long floorHash = 0;
+                Floor floorToHash = Floors[floor];
+                foreach (Microchip m in floorToHash.MicroChips)
+                {
+                    floorHash = floorHash + microchipHashKeys[m.MicrochipNumber - 1];
+                }
+
+                foreach (Generator g in floorToHash.Generators)
+                {
+                    floorHash = floorHash + generatorHashKeys[g.GeneratorNumber - 1];
+                }
+                if (ElevatorOn == floor + 1)
+                    floorHash += elevatorPresentKey;
+                long floorAdjustmentMultiplier = (long)Math.Pow(65536, floor);
+                result = result + (floorHash * floorAdjustmentMultiplier);
+            }
+            return result;
+        }
+
+        public string HashString()
         {
             string result = ElevatorOn.ToString();
-            foreach(Floor f in Floors)
+            foreach (Floor f in Floors)
             {
                 result += f.Hash;
             }
             return result;
         }
-        
+
+
     }
 }

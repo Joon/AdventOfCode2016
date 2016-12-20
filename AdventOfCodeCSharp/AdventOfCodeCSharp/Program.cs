@@ -117,6 +117,10 @@ namespace AdventOfCodeCSharp
                     var puzzle11 = new Puzzle11();
                     intAnswer = puzzle11.CalcShortestSolution();
                     break;
+                case "11b":
+                    var puzzle11b = new Puzzle11();
+                    intAnswer = puzzle11b.CalcShortestSolutionWithExtra();
+                    break;
             }
             if (!string.IsNullOrEmpty(stringAnswer))
             {
