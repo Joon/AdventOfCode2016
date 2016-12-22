@@ -24,6 +24,8 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
 
         public bool MoveSolvesBuilding { get; set; }
 
+        public int ProcessedAtLevel { get; set; }
+
         public int MoveDepth { get; set; }
 
         public bool CommandTreeSolved()

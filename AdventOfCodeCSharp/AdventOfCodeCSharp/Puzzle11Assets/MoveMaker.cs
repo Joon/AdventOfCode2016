@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -10,16 +11,120 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
     public class MoveMaker
     {
         Dictionary<long, int> _processedHashes = new Dictionary<long, int>();
-        HashSet<string> _processedHashesString = new HashSet<string>();
+        Dictionary<string, int> _processedHashesString = new Dictionary<string, int>();
         
         public bool HashStrings { get; set; }
+        private int _consoleY;
+        public int CalcMoveDepth(Building startState, Building desiredEndState)
+        {
+            Console.CursorVisible = false;
+            _consoleY = Console.CursorTop;
+            Task<int> solveFromBottom = new Task<int>(() =>
+            {
+                return SolveBuildingState(startState, true);
+            });
 
-        public int CalcMoveDepth(Building startState)
-        {            
+            Task<int> solveFromTop = new Task<int>(() =>
+            {
+                return SolveBuildingState(desiredEndState, false);
+            });
+
+            solveFromBottom.Start();
+            solveFromTop.Start();
+
+            solveFromBottom.Wait();
+            solveFromTop.Wait();
+
+            Console.CursorVisible = true;
+            Console.SetCursorPosition(0, _consoleY + _tracking.Count + 2);
+
+            return Math.Min(solveFromBottom.Result, solveFromTop.Result); 
+        }
+
+        private int _currentBestCandidate = int.MaxValue;
+
+        private Dictionary<int, long> _tracking = new Dictionary<int, long>();
+        private void UpdateProcessingTracking(int level, int amountToAdd)
+        {
+            lock (_tracking)
+            {
+                if (_tracking.ContainsKey(level))
+                    _tracking[level] = _tracking[level] + amountToAdd;
+                else
+                    _tracking[level] = amountToAdd;
+            }
+        }
+
+        private void DisplayTracking()
+        {
+            int deepestFromTop = 0;
+            int deepestFromBottom = 0;
+            long widest = 0;
+
+            lock (_tracking)
+            {
+                deepestFromTop = _tracking.Keys.Max();
+                deepestFromBottom = _tracking.Keys.Min();
+                widest = _tracking.Values.Max();
+            }
+            long divider = widest / 40;
+            for (int i = deepestFromBottom; i <= deepestFromTop; i++)
+            {
+                long dispValue;
+                lock (_tracking)
+                {
+                    if (i == 0)
+                        dispValue = 0;
+                    else
+                        dispValue = _tracking[i];
+                }
+                int consoleHeightAdjuster = 0;
+                if (i >= 0)
+                    consoleHeightAdjuster = deepestFromTop - i;
+                if (i < 0)
+                    consoleHeightAdjuster = deepestFromTop + Math.Abs(i);
+                int consoleY = _consoleY + consoleHeightAdjuster;
+                lock (consoleAcces)
+                {
+                    Console.SetCursorPosition(0, consoleY);
+                    Console.Write(i.ToString().PadRight(5));
+                    Console.SetCursorPosition(6, consoleY);
+                    Console.Write("".PadRight(50));
+                    Console.SetCursorPosition(6, consoleY);
+                    Console.Write(dispValue.ToString().PadRight((int)(dispValue / (divider > 0 ? divider : 1)), '#'));
+                }
+            }
+            lock (consoleAcces)
+            {
+                int height = 0;
+                long totalMoves = 0;
+                lock (_tracking)
+                {
+                    height = _tracking.Count + 1;
+                    totalMoves = _tracking.Values.Sum();
+                }
+                Console.SetCursorPosition(0, _consoleY + height);
+                Console.WriteLine("Total Moves: " + totalMoves);
+            }
+        }
+
+        private object consoleAcces = new object();
+
+        private int SolveBuildingState(Building startState, bool moveUpBias)
+        {
             // Calculate the top level
             List<BuildingMove> addMovesTo = new List<BuildingMove>();
-            CalcAllPossibleValidMoves(startState, addMovesTo, 1);
-            List<Task<int>> tasks = new List<Task<int>>();
+            int directionMultiplier = moveUpBias ? 1 : -1;
+
+            CalcAllPossibleValidMoves(startState, addMovesTo, directionMultiplier, moveUpBias);
+            if (addMovesTo.Count == 0)
+            {
+                Debug.WriteLine("Moving " + (moveUpBias ? " up " : "down") + "found no possible moves");
+                return 0;
+            }
+            UpdateProcessingTracking(directionMultiplier, addMovesTo.Count);
+            
+            List<Task<BuildingMove>> tasks = new List<Task<BuildingMove>>();
             Dictionary<int, int> currentProcessingDepth = new Dictionary<int, int>();
             int taskCount = 0;
 
@@ -27,25 +132,39 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
             foreach (BuildingMove bm in addMovesTo)
             {
                 taskCount++;
-                Task<int> calculator = new Task<int>(o =>
+                Task<BuildingMove> calculator = new Task<BuildingMove>(o =>
                 {
                     List<BuildingMove> moves = new List<BuildingMove>();
                     moves.Add(bm);
-                    int moveLevel = 1;
+                    int moveLevel = directionMultiplier;
                     while (!breaker)
                     {
-                        moveLevel++;
+                        moveLevel = moveLevel + directionMultiplier;
                         lock (currentProcessingDepth)
                         {
-                            currentProcessingDepth[(int)o] = moveLevel;
+                            currentProcessingDepth[(int)o] = Math.Abs(moveLevel);
+                        }
+                        if (Math.Abs(moveLevel) > _currentBestCandidate)
+                        {
+                            Debug.WriteLine((moveUpBias ? "U " : "B ") + "Task " + o.ToString() + 
+                                " is now deeper than current best answer " + _currentBestCandidate + 
+                                ". Aborting...");
+                            lock (currentProcessingDepth)
+                            {
+                                currentProcessingDepth.Remove((int)o);
+                            }
+                            return null;
                         }
 
-                        Console.WriteLine("Trying to solve task " + o.ToString() + " at level " + moveLevel);
-
+                        Debug.WriteLine((moveUpBias ? "U " : "B ") + "Trying to solve task " + o.ToString() + 
+                            " at level " + moveLevel);
+                        
                         List<BuildingMove> leafNodes = new List<BuildingMove>();
+                        
                         foreach (BuildingMove move in moves)
                         {
-                            CalcAllPossibleValidMoves(move.StateAfterMove, leafNodes, moveLevel);
+                            UpdateProcessingTracking(moveLevel, 1);
+                            CalcAllPossibleValidMoves(move.StateAfterMove, leafNodes, moveLevel, moveUpBias);
 
                             foreach (BuildingMove newMove in leafNodes)
                             {
@@ -54,22 +173,22 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
                                     lock (currentProcessingDepth)
                                     {
                                         currentProcessingDepth.Remove((int)o);
-                                    }
-                                    return moveLevel;
+                                    }                        
+                                    return newMove;
                                 }
                             }
                         }
 
                         if (leafNodes.Count == 0)
                         {
-                            Console.WriteLine("Out of ideas. Aborting...");
+                            Debug.WriteLine((moveUpBias ? "U " : "B ") + o.ToString() + " Out of ideas. Aborting...");
                             lock (currentProcessingDepth)
                             {
                                 currentProcessingDepth.Remove((int)o);
                             }
-                            return -1;
+                            return null; 
                         }
-
+                        
                         moves.Clear();
                         moves.AddRange(leafNodes);
                     }
@@ -77,7 +196,7 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
                     {
                         currentProcessingDepth.Remove((int)o);
                     }
-                    return -1;
+                    return null;
                 }, taskCount);
                 calculator.Start();
                 tasks.Add(calculator);
@@ -85,27 +204,32 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
 
             while (true)
             {
+                DisplayTracking();
                 List<int> possibleAnswers = new List<int>();
-                foreach (Task<int> t in tasks)
+                foreach (Task<BuildingMove> t in tasks)
                 {
-                    if (t.IsCompleted && t.Result > 0)
-                        possibleAnswers.Add(t.Result);
+                    if (t.IsCompleted && t.Result != null && t.Result.MoveSolvesBuilding)
+                        possibleAnswers.Add(t.Result.MoveDepth);
                 }
 
                 if (possibleAnswers.Count > 0)
                 {
                     int bestAnswer = possibleAnswers.Min();
+                    _currentBestCandidate = bestAnswer;
                     lock (currentProcessingDepth)
                     {
                         if (currentProcessingDepth.Count > 0)
                         {
                             if (bestAnswer < currentProcessingDepth.Values.Min())
                             {
+                                Debug.WriteLine("Solved in direction " + (moveUpBias ? "Up" : "Down") + " with value of " + bestAnswer);
                                 breaker = true;
                                 return bestAnswer;
                             }
-                        } else
+                        }
+                        else
                         {
+                            Debug.WriteLine("Solved in direction " + (moveUpBias ? "Up" : "Down") + " with value of " + bestAnswer);
                             return bestAnswer;
                         }
                     }
@@ -118,7 +242,7 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
         public void CalcMovesFullState(Building startState, List<BuildingMove> addMovesTo)
         {
             // Calculate the top level
-            CalcAllPossibleValidMoves(startState, addMovesTo, 1);
+            CalcAllPossibleValidMoves(startState, addMovesTo, 1, true);
             bool solved = false;
             // Now calculate progressively deeper until the puzzle gets solved somewhere
             while (!solved)
@@ -127,7 +251,7 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
                 bool anyChildren = false;
                 foreach (BuildingMove move in leafNodes)
                 {
-                    CalcAllPossibleValidMoves(move.StateAfterMove, move.SubsequentMoves, move.MoveDepth + 1);
+                    CalcAllPossibleValidMoves(move.StateAfterMove, move.SubsequentMoves, move.MoveDepth + 1, true);
                     if (move.SubsequentMoves.Count > 0)
                         anyChildren = true;
                     if (move.CommandTreeSolved())
@@ -136,7 +260,7 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
 
                 if (!anyChildren)
                 {
-                    Console.WriteLine("Ran out of moves. Still not solved.");
+                    Debug.WriteLine("Ran out of moves. Still not solved.");
                     break;
                 }
             }
@@ -156,14 +280,16 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
             return result;
         }
 
-        public void CalcAllPossibleValidMoves(Building startState, List<BuildingMove> addMovesTo, int processingDepth)
+        public void CalcAllPossibleValidMoves(Building startState, List<BuildingMove> addMovesTo, 
+            int processingDepth, bool moveUpBias)
         {
             Floor processFloor = startState.Floors[startState.ElevatorOn - 1];
-            MakeMicrochipMoves(startState, addMovesTo, processFloor, processingDepth);
-            MakeGeneratorOnlyMoves(startState, addMovesTo, processFloor, processingDepth);
+            MakeMicrochipMoves(startState, addMovesTo, processFloor, processingDepth, moveUpBias);
+            MakeGeneratorOnlyMoves(startState, addMovesTo, processFloor, processingDepth, moveUpBias);
         }
 
-        private void MakeGeneratorOnlyMoves(Building startState, List<BuildingMove> result, Floor processFloor, int processingDepth)
+        private void MakeGeneratorOnlyMoves(Building startState, List<BuildingMove> result, Floor processFloor, 
+            int processingDepth, bool moveUpBias)
         {
             foreach (Generator g1 in processFloor.Generators)
             {
@@ -183,28 +309,34 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
                             Floor endFloor = startState.Floors[startState.ElevatorOn - 2];
                             MakeMoveIfValid(null, null, g1, null, processFloor, endFloor, startState, result, processingDepth);
                         }
-                    } else
+                    }
+                    else
                     {
-                        // Can we go up?
-                        if (startState.ElevatorOn < startState.Floors.Count)
+                        if (moveUpBias)
                         {
-                            Floor endFloor = startState.Floors[startState.ElevatorOn];
-                            MakeMoveIfValid(null, null, g1, g2, processFloor, endFloor, startState, result, processingDepth);
+                            // Can we go up?
+                            if (startState.ElevatorOn < startState.Floors.Count)
+                            {
+                                Floor endFloor = startState.Floors[startState.ElevatorOn];
+                                MakeMoveIfValid(null, null, g1, g2, processFloor, endFloor, startState, result, processingDepth);
+                            }
                         }
-                        // Disabled for now: We only want to move one thing down
-                        //// Can we go down?
-                        //if (startState.ElevatorOn > 1)
-                        //{
-                        //    Floor endFloor = startState.Floors[startState.ElevatorOn - 2];
-                        //    MakeMoveIfValid(null, null, g1, g2, processFloor, endFloor, startState, result);
-                        //}
+                        else
+                        { 
+                            // Can we go down?
+                            if (startState.ElevatorOn > 1)
+                            {
+                                Floor endFloor = startState.Floors[startState.ElevatorOn - 2];
+                                MakeMoveIfValid(null, null, g1, g2, processFloor, endFloor, startState, result, processingDepth);
+                            }
+                        }
                     }
                 }
             }
         }
 
         private void MakeMicrochipMoves(Building startState, List<BuildingMove> result, Floor processFloor,
-            int processingDepth)
+            int processingDepth, bool moveUpBias)
         {
             foreach (Microchip mc1 in processFloor.MicroChips)
             {
@@ -217,9 +349,12 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
                         {
                             Floor endFloor = startState.Floors[startState.ElevatorOn];
                             MakeMoveIfValid(mc1, null, null, null, processFloor, endFloor, startState, result, processingDepth);
-                            foreach (Generator g in processFloor.Generators)
+                            if (moveUpBias)
                             {
-                                MakeMoveIfValid(mc1, null, g, null, processFloor, endFloor, startState, result, processingDepth);
+                                foreach (Generator g in processFloor.Generators)
+                                {
+                                    MakeMoveIfValid(mc1, null, g, null, processFloor, endFloor, startState, result, processingDepth);
+                                }
                             }
                         }
                         // Can we go down?
@@ -227,27 +362,34 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
                         {
                             Floor endFloor = startState.Floors[startState.ElevatorOn - 2];
                             MakeMoveIfValid(mc1, null, null, null, processFloor, endFloor, startState, result, processingDepth);
-                            // disabled for now - only take one thing down
-                            //foreach (Generator g in processFloor.Generators)
-                            //{
-                            //    MakeMoveIfValid(mc1, null, g, null, processFloor, endFloor, startState, result);
-                            //}
+                            if (!moveUpBias)
+                            {
+                                foreach (Generator g in processFloor.Generators)
+                                {
+                                    MakeMoveIfValid(mc1, null, g, null, processFloor, endFloor, startState, result, processingDepth);
+                                }
+                            }
                         }
                     } else
                     {
-                        // Can we go up?
-                        if (startState.ElevatorOn < startState.Floors.Count)
+                        if (moveUpBias)
                         {
-                            Floor endFloor = startState.Floors[startState.ElevatorOn];
-                            MakeMoveIfValid(mc1, mc2, null, null, processFloor, endFloor, startState, result, processingDepth);
+                            // Can we go up?
+                            if (startState.ElevatorOn < startState.Floors.Count)
+                            {
+                                Floor endFloor = startState.Floors[startState.ElevatorOn];
+                                MakeMoveIfValid(mc1, mc2, null, null, processFloor, endFloor, startState, result, processingDepth);
+                            }
                         }
-                        // Disabled for now - only take one thing down
-                        //// Can we go down?
-                        //if (startState.ElevatorOn > 1)
-                        //{
-                        //    Floor endFloor = startState.Floors[startState.ElevatorOn - 2];
-                        //    MakeMoveIfValid(mc1, mc2, null, null, processFloor, endFloor, startState, result);
-                        //}
+                        else
+                        {
+                            // Can we go down?
+                            if (startState.ElevatorOn > 1)
+                            {
+                                Floor endFloor = startState.Floors[startState.ElevatorOn - 2];
+                                MakeMoveIfValid(mc1, mc2, null, null, processFloor, endFloor, startState, result, processingDepth);
+                            }
+                        }
                     }
                 }
             }
@@ -298,25 +440,36 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
             }
             moveEffect.ElevatorOn = newEndFloor.FloorNumber;
 
+            int foundOppositeProcessingTerminus = 0;
+            // An optmization to stop the same situation from being processed over and over again. Once a
+            // particular state has been processed, it isn't ever reprocessed
             if (HashStrings)
-            {
-                // An optmization to stop the same situation from being processed over and over again. Once a
-                // particular state has been processed, it isn't ever reprocessed
-                long hash = moveEffect.Hash();
-                lock (_processedHashes)
-                {
-                    if (_processedHashes.ContainsKey(hash))
-                        return;
-                    _processedHashes[hash] = processingDepth;
-                }
-            } else
             {
                 string hashS = moveEffect.HashString();
                 lock (_processedHashesString)
                 {
-                    if (_processedHashesString.Contains(hashS))
-                        return;
-                    _processedHashesString.Add(hashS);
+                    if (_processedHashesString.ContainsKey(hashS))
+                    {
+                        if (Math.Sign(_processedHashesString[hashS]) == Math.Sign(processingDepth))
+                            return;
+                        else
+                            foundOppositeProcessingTerminus = _processedHashesString[hashS];
+                        _processedHashesString[hashS] = processingDepth;
+                    }
+                }
+            } else
+            {
+                long hash = moveEffect.Hash();
+                lock (_processedHashes)
+                {
+                    if (_processedHashes.ContainsKey(hash))
+                    {
+                        if (Math.Sign(_processedHashes[hash]) == Math.Sign(processingDepth))
+                            return;
+                        else
+                            foundOppositeProcessingTerminus = _processedHashes[hash];
+                    }
+                    _processedHashes[hash] = processingDepth;
                 }
             }
 
@@ -325,7 +478,17 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
             bm.StartFloor = newStartFloor;
             bm.EndFloor = newEndFloor;
             bm.StateAfterMove = moveEffect;
-            bm.MoveSolvesBuilding = moveEffect.BuildingSolved();
+            bm.MoveDepth = Math.Abs(processingDepth) + Math.Abs(foundOppositeProcessingTerminus);
+
+            if (foundOppositeProcessingTerminus > 0)
+            {
+                Debug.WriteLine("Found opposite processing end at level " + foundOppositeProcessingTerminus +
+                    " while processing at level " + processingDepth); 
+            }
+
+            bm.MoveSolvesBuilding = (foundOppositeProcessingTerminus != 0) || (processingDepth > 0 && moveEffect.BuildingSolved());
+            bm.ProcessedAtLevel = processingDepth;
+
             addMoveTo.Add(bm);
         }
 

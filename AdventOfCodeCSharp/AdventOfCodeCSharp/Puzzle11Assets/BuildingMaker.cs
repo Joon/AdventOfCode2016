@@ -42,6 +42,30 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
 
         }
 
+        internal Building SolvedBuilding(Building startState)
+        {
+            Building result = startState.Clone();
+
+            Floor destFloor = result.Floors[result.Floors.Count - 1];
+            foreach(Floor floor in result.Floors)
+            {
+                if (floor == destFloor)
+                    continue;
+                foreach(Microchip mc in floor.MicroChips)
+                {
+                    destFloor.MicroChips.Add(mc);                    
+                }
+                floor.MicroChips.Clear();
+                foreach(Generator g in floor.Generators)
+                {
+                    destFloor.Generators.Add(g);
+                }
+                floor.Generators.Clear();
+            }
+            result.ElevatorOn = result.Floors.Count;
+            return result;
+        }
+
         public Building BuildingForPuzzleInput()
         {
             Building commandState = new Building();
@@ -87,10 +111,10 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
         {
             Building commandState = BuildingForPuzzleInput();
             Floor floor1 = commandState.Floors[0];
-            floor1.Generators.Add(new Generator() { GeneratorNumber = 2, Identifier = "elerium" });
-            floor1.MicroChips.Add(new Microchip() { MicrochipNumber = 1, Identifier = "elerium" });
-            floor1.Generators.Add(new Generator() { GeneratorNumber = 2, Identifier = "dilithium" });
-            floor1.MicroChips.Add(new Microchip() { MicrochipNumber = 1, Identifier = "dilithium" });
+            floor1.Generators.Add(new Generator() { GeneratorNumber = 6, Identifier = "elerium" });
+            floor1.MicroChips.Add(new Microchip() { MicrochipNumber = 6, Identifier = "elerium" });
+            floor1.Generators.Add(new Generator() { GeneratorNumber = 7, Identifier = "dilithium" });
+            floor1.MicroChips.Add(new Microchip() { MicrochipNumber = 7, Identifier = "dilithium" });
             return commandState;
         }
     }

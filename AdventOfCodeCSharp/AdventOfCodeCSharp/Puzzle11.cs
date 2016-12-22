@@ -14,13 +14,15 @@ namespace AdventOfCodeCSharp
         public int CalcShortestSolution()
         {
             BuildingMaker maker = new BuildingMaker();
+            //Building startState = maker.TestPuzzleInput();
             Building startState = maker.BuildingForPuzzleInput();
+            Building endState = maker.SolvedBuilding(startState);
             MoveMaker mover = new MoveMaker();
 
             Stopwatch watch = new Stopwatch();
             watch.Start();
             mover.HashStrings = false;
-            int lowestLongSolution = mover.CalcMoveDepth(startState);
+            int lowestLongSolution = mover.CalcMoveDepth(startState, endState);
             watch.Stop();
             Console.WriteLine("It took " + watch.Elapsed.ToString() + " to process, with result " + lowestLongSolution);
             
@@ -31,11 +33,13 @@ namespace AdventOfCodeCSharp
         {
             BuildingMaker maker = new BuildingMaker();
             Building startState = maker.BuildingForPuzzle2Input();
+            Building endState = maker.SolvedBuilding(startState);
             MoveMaker mover = new MoveMaker();
+            mover.HashStrings = false;
             List<BuildingMove> possibleSolutions = new List<BuildingMove>();
             Stopwatch watch = new Stopwatch();
             watch.Start();
-            int lowestSolution = mover.CalcMoveDepth(startState);
+            int lowestSolution = mover.CalcMoveDepth(startState, endState);
             watch.Stop();
             Console.WriteLine("It took " + watch.Elapsed.ToString() + " to process");
             return lowestSolution;
