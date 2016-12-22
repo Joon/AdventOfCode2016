@@ -78,8 +78,11 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
                 widest = _tracking.Values.Max();
             }
             long divider = widest / 40;
-            for (int i = deepestFromBottom; i <= deepestFromTop; i++)
+            int[] displayLevels = { deepestFromBottom, deepestFromTop };
+            int height = 0;
+            foreach (int i in displayLevels)
             {
+                height++;
                 long dispValue;
                 lock (_tracking)
                 {
@@ -93,7 +96,7 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
                     consoleHeightAdjuster = deepestFromTop - i;
                 if (i < 0)
                     consoleHeightAdjuster = deepestFromTop + Math.Abs(i);
-                int consoleY = _consoleY + consoleHeightAdjuster;
+                int consoleY = _consoleY + height;
                 lock (consoleAcces)
                 {
                     Console.SetCursorPosition(0, consoleY);
@@ -106,14 +109,12 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
             }
             lock (consoleAcces)
             {
-                int height = 0;
                 long totalMoves = 0;
                 lock (_tracking)
                 {
-                    height = _tracking.Count + 1;
-                    totalMoves = _tracking.Values.Sum();
+                  totalMoves = _tracking.Values.Sum();
                 }
-                Console.SetCursorPosition(0, _consoleY + height);
+                Console.SetCursorPosition(0, _consoleY + height + 1);
                 Console.WriteLine("Total Moves: " + totalMoves);
             }
         }
