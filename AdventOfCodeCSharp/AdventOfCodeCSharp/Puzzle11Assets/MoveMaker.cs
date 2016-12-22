@@ -21,19 +21,26 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
             _consoleY = Console.CursorTop;
             Task<int> solveFromBottom = new Task<int>(() =>
             {
-                return SolveBuildingState(startState, true);
+                return SolveBuildingStateThreadWide(startState, true);
             });
 
             Task<int> solveFromTop = new Task<int>(() =>
             {
-                return SolveBuildingState(desiredEndState, false);
+                return SolveBuildingStateThreadWide(desiredEndState, false);
             });
 
             solveFromBottom.Start();
             solveFromTop.Start();
 
-            solveFromBottom.Wait();
-            solveFromTop.Wait();
+            while (true)
+            {
+                DisplayTracking();                
+                // Only check for a solution once every half second
+                Thread.Sleep(500);
+
+                if (solveFromBottom.IsCompleted && solveFromTop.IsCompleted)
+                    break;
+            }
 
             Console.CursorVisible = true;
             Console.SetCursorPosition(0, _consoleY + _tracking.Count + 2);
@@ -63,6 +70,9 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
 
             lock (_tracking)
             {
+                if (_tracking.Count == 0)
+                    return;
+
                 deepestFromTop = _tracking.Keys.Max();
                 deepestFromBottom = _tracking.Keys.Min();
                 widest = _tracking.Values.Max();
@@ -120,10 +130,73 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
             if (addMovesTo.Count == 0)
             {
                 Debug.WriteLine("Moving " + (moveUpBias ? " up " : "down") + "found no possible moves");
-                return 0;
+                return Int32.MaxValue;
             }
             UpdateProcessingTracking(directionMultiplier, addMovesTo.Count);
             
+            bool breaker = false;
+            foreach (BuildingMove bm in addMovesTo)
+            {
+                List<BuildingMove> moves = new List<BuildingMove>();
+                moves.Add(bm);
+                int moveLevel = directionMultiplier;
+                while (!breaker)
+                {
+                    moveLevel = moveLevel + directionMultiplier;
+                    if (Math.Abs(moveLevel) > _currentBestCandidate)
+                    {
+                        Debug.WriteLine((moveUpBias ? "U " : "B ") + "Task " + 
+                            " is now deeper than current best answer " + _currentBestCandidate + 
+                            ". Aborting...");
+                        return Int32.MaxValue;
+                    }
+
+                    Debug.WriteLine((moveUpBias ? "U " : "B ") + "Trying to solve task " + 
+                        " at level " + moveLevel);
+                        
+                    List<BuildingMove> leafNodes = new List<BuildingMove>();
+                        
+                    foreach (BuildingMove move in moves)
+                    {
+                        UpdateProcessingTracking(moveLevel, 1);
+                        CalcAllPossibleValidMoves(move.StateAfterMove, leafNodes, moveLevel, moveUpBias);
+
+                        foreach (BuildingMove newMove in leafNodes)
+                        {
+                            if (newMove.MoveSolvesBuilding)
+                            {
+                                return newMove.MoveDepth;
+                            }
+                        }
+                    }
+
+                    if (leafNodes.Count == 0)
+                    {
+                        Debug.WriteLine((moveUpBias ? "U " : "B ") + " Out of ideas. Aborting this line of enquiry...");
+                        break;
+                    }
+                        
+                    moves.Clear();
+                    moves.AddRange(leafNodes);
+                }
+            }
+            return Int32.MaxValue;
+        }
+
+        private int SolveBuildingStateThreadDeep(Building startState, bool moveUpBias)
+        {
+            // Calculate the top level
+            List<BuildingMove> addMovesTo = new List<BuildingMove>();
+            int directionMultiplier = moveUpBias ? 1 : -1;
+
+            CalcAllPossibleValidMoves(startState, addMovesTo, directionMultiplier, moveUpBias);
+            if (addMovesTo.Count == 0)
+            {
+                Debug.WriteLine("Moving " + (moveUpBias ? " up " : "down") + "found no possible moves");
+                return 0;
+            }
+            UpdateProcessingTracking(directionMultiplier, addMovesTo.Count);
+
             List<Task<BuildingMove>> tasks = new List<Task<BuildingMove>>();
             Dictionary<int, int> currentProcessingDepth = new Dictionary<int, int>();
             int taskCount = 0;
@@ -146,8 +219,8 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
                         }
                         if (Math.Abs(moveLevel) > _currentBestCandidate)
                         {
-                            Debug.WriteLine((moveUpBias ? "U " : "B ") + "Task " + o.ToString() + 
-                                " is now deeper than current best answer " + _currentBestCandidate + 
+                            Debug.WriteLine((moveUpBias ? "U " : "B ") + "Task " + o.ToString() +
+                                " is now deeper than current best answer " + _currentBestCandidate +
                                 ". Aborting...");
                             lock (currentProcessingDepth)
                             {
@@ -156,11 +229,11 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
                             return null;
                         }
 
-                        Debug.WriteLine((moveUpBias ? "U " : "B ") + "Trying to solve task " + o.ToString() + 
+                        Debug.WriteLine((moveUpBias ? "U " : "B ") + "Trying to solve task " + o.ToString() +
                             " at level " + moveLevel);
-                        
+
                         List<BuildingMove> leafNodes = new List<BuildingMove>();
-                        
+
                         foreach (BuildingMove move in moves)
                         {
                             UpdateProcessingTracking(moveLevel, 1);
@@ -173,7 +246,7 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
                                     lock (currentProcessingDepth)
                                     {
                                         currentProcessingDepth.Remove((int)o);
-                                    }                        
+                                    }
                                     return newMove;
                                 }
                             }
@@ -186,9 +259,9 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
                             {
                                 currentProcessingDepth.Remove((int)o);
                             }
-                            return null; 
+                            return null;
                         }
-                        
+
                         moves.Clear();
                         moves.AddRange(leafNodes);
                     }
@@ -204,7 +277,6 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
 
             while (true)
             {
-                DisplayTracking();
                 List<int> possibleAnswers = new List<int>();
                 foreach (Task<BuildingMove> t in tasks)
                 {
@@ -237,6 +309,80 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
                 // Only check for a solution once every half second
                 Thread.Sleep(500);
             }
+        }
+
+        private int PROCESSING_POOL_SIZE = 5;
+
+        private int SolveBuildingStateThreadWide(Building startState, bool moveUpBias)
+        {
+            // Calculate the top level
+            List<BuildingMove> nextLevelMoves = new List<BuildingMove>();
+            int directionMultiplier = moveUpBias ? 1 : -1;
+
+            CalcAllPossibleValidMoves(startState, nextLevelMoves, directionMultiplier, moveUpBias);
+            if (nextLevelMoves.Count == 0)
+            {
+                Debug.WriteLine("Moving " + (moveUpBias ? " up " : "down") + "found no possible moves");
+                return 0;
+            }
+            UpdateProcessingTracking(directionMultiplier, nextLevelMoves.Count);
+                       
+            int moveLevel = directionMultiplier;
+            while (true)
+            {
+                moveLevel = moveLevel + directionMultiplier;
+                int taskCount = PROCESSING_POOL_SIZE;
+                if (taskCount > nextLevelMoves.Count())
+                    taskCount = nextLevelMoves.Count();
+
+                List<Task> tasks = new List<Task>();
+                for (int taskNum = 1; taskNum < taskCount; taskNum++)
+                {
+                    List<BuildingMove> taskMoves = new List<BuildingMove>();
+                    if (taskNum < taskCount - 1)
+                    {
+                        taskMoves.AddRange(nextLevelMoves.Take(nextLevelMoves.Count / taskCount));
+                        nextLevelMoves.RemoveRange(0, nextLevelMoves.Count / taskCount);
+                    }
+                    else
+                    {
+                        taskMoves.AddRange(nextLevelMoves);
+                        nextLevelMoves.Clear();
+                    }
+                    Task calculator = new Task(() =>
+                    {
+                        foreach (BuildingMove move in taskMoves)
+                        {
+                            List<BuildingMove> leaves = new List<BuildingMove>();
+                            UpdateProcessingTracking(moveLevel, 1);
+                            CalcAllPossibleValidMoves(move.StateAfterMove, leaves, moveLevel, moveUpBias);
+                            lock (nextLevelMoves)
+                                nextLevelMoves.AddRange(leaves);
+                        }
+                    });
+                    tasks.Add(calculator);
+                }
+
+                foreach (Task t in tasks)
+                    t.Start();
+
+                foreach (Task t in tasks)
+                    t.Wait();
+                
+                if (nextLevelMoves.Count == 0)
+                {
+                    Debug.WriteLine("Ran out of possible moves without a solution :-(");
+                    return Int32.MaxValue;
+                }
+
+                foreach (BuildingMove newMove in nextLevelMoves)
+                {
+                    if (newMove.MoveSolvesBuilding)
+                    {
+                        return newMove.MoveDepth;
+                    }
+                }                
+            }           
         }
 
         public void CalcMovesFullState(Building startState, List<BuildingMove> addMovesTo)
