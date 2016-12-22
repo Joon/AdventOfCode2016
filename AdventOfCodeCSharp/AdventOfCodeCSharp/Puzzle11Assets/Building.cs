@@ -19,16 +19,6 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
             _floors = new List<Floor>();
         }
 
-        public void ConstructBuilding(int floorcount)
-        {
-            for(int i = 1; i < floorcount; i++)
-            {
-                Floor f = new Floor();
-                f.FloorNumber = i;
-                Floors.Add(f);
-            }
-        }
-
         public Building Clone()
         {
             Building result = new Building();

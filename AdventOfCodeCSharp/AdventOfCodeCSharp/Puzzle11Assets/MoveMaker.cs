@@ -121,197 +121,6 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
 
         private object consoleAcces = new object();
 
-        private int SolveBuildingState(Building startState, bool moveUpBias)
-        {
-            // Calculate the top level
-            List<BuildingMove> addMovesTo = new List<BuildingMove>();
-            int directionMultiplier = moveUpBias ? 1 : -1;
-
-            CalcAllPossibleValidMoves(startState, addMovesTo, directionMultiplier, moveUpBias);
-            if (addMovesTo.Count == 0)
-            {
-                Debug.WriteLine("Moving " + (moveUpBias ? " up " : "down") + "found no possible moves");
-                return Int32.MaxValue;
-            }
-            UpdateProcessingTracking(directionMultiplier, addMovesTo.Count);
-            
-            bool breaker = false;
-            foreach (BuildingMove bm in addMovesTo)
-            {
-                List<BuildingMove> moves = new List<BuildingMove>();
-                moves.Add(bm);
-                int moveLevel = directionMultiplier;
-                while (!breaker)
-                {
-                    moveLevel = moveLevel + directionMultiplier;
-                    if (Math.Abs(moveLevel) > _currentBestCandidate)
-                    {
-                        Debug.WriteLine((moveUpBias ? "U " : "B ") + "Task " + 
-                            " is now deeper than current best answer " + _currentBestCandidate + 
-                            ". Aborting...");
-                        return Int32.MaxValue;
-                    }
-
-                    Debug.WriteLine((moveUpBias ? "U " : "B ") + "Trying to solve task " + 
-                        " at level " + moveLevel);
-                        
-                    List<BuildingMove> leafNodes = new List<BuildingMove>();
-                        
-                    foreach (BuildingMove move in moves)
-                    {
-                        UpdateProcessingTracking(moveLevel, 1);
-                        CalcAllPossibleValidMoves(move.StateAfterMove, leafNodes, moveLevel, moveUpBias);
-
-                        foreach (BuildingMove newMove in leafNodes)
-                        {
-                            if (newMove.MoveSolvesBuilding)
-                            {
-                                return newMove.MoveDepth;
-                            }
-                        }
-                    }
-
-                    if (leafNodes.Count == 0)
-                    {
-                        Debug.WriteLine((moveUpBias ? "U " : "B ") + " Out of ideas. Aborting this line of enquiry...");
-                        break;
-                    }
-                        
-                    moves.Clear();
-                    moves.AddRange(leafNodes);
-                }
-            }
-            return Int32.MaxValue;
-        }
-
-        private int SolveBuildingStateThreadDeep(Building startState, bool moveUpBias)
-        {
-            // Calculate the top level
-            List<BuildingMove> addMovesTo = new List<BuildingMove>();
-            int directionMultiplier = moveUpBias ? 1 : -1;
-
-            CalcAllPossibleValidMoves(startState, addMovesTo, directionMultiplier, moveUpBias);
-            if (addMovesTo.Count == 0)
-            {
-                Debug.WriteLine("Moving " + (moveUpBias ? " up " : "down") + "found no possible moves");
-                return 0;
-            }
-            UpdateProcessingTracking(directionMultiplier, addMovesTo.Count);
-
-            List<Task<BuildingMove>> tasks = new List<Task<BuildingMove>>();
-            Dictionary<int, int> currentProcessingDepth = new Dictionary<int, int>();
-            int taskCount = 0;
-
-            bool breaker = false;
-            foreach (BuildingMove bm in addMovesTo)
-            {
-                taskCount++;
-                Task<BuildingMove> calculator = new Task<BuildingMove>(o =>
-                {
-                    List<BuildingMove> moves = new List<BuildingMove>();
-                    moves.Add(bm);
-                    int moveLevel = directionMultiplier;
-                    while (!breaker)
-                    {
-                        moveLevel = moveLevel + directionMultiplier;
-                        lock (currentProcessingDepth)
-                        {
-                            currentProcessingDepth[(int)o] = Math.Abs(moveLevel);
-                        }
-                        if (Math.Abs(moveLevel) > _currentBestCandidate)
-                        {
-                            Debug.WriteLine((moveUpBias ? "U " : "B ") + "Task " + o.ToString() +
-                                " is now deeper than current best answer " + _currentBestCandidate +
-                                ". Aborting...");
-                            lock (currentProcessingDepth)
-                            {
-                                currentProcessingDepth.Remove((int)o);
-                            }
-                            return null;
-                        }
-
-                        Debug.WriteLine((moveUpBias ? "U " : "B ") + "Trying to solve task " + o.ToString() +
-                            " at level " + moveLevel);
-
-                        List<BuildingMove> leafNodes = new List<BuildingMove>();
-
-                        foreach (BuildingMove move in moves)
-                        {
-                            UpdateProcessingTracking(moveLevel, 1);
-                            CalcAllPossibleValidMoves(move.StateAfterMove, leafNodes, moveLevel, moveUpBias);
-
-                            foreach (BuildingMove newMove in leafNodes)
-                            {
-                                if (newMove.MoveSolvesBuilding)
-                                {
-                                    lock (currentProcessingDepth)
-                                    {
-                                        currentProcessingDepth.Remove((int)o);
-                                    }
-                                    return newMove;
-                                }
-                            }
-                        }
-
-                        if (leafNodes.Count == 0)
-                        {
-                            Debug.WriteLine((moveUpBias ? "U " : "B ") + o.ToString() + " Out of ideas. Aborting...");
-                            lock (currentProcessingDepth)
-                            {
-                                currentProcessingDepth.Remove((int)o);
-                            }
-                            return null;
-                        }
-
-                        moves.Clear();
-                        moves.AddRange(leafNodes);
-                    }
-                    lock (currentProcessingDepth)
-                    {
-                        currentProcessingDepth.Remove((int)o);
-                    }
-                    return null;
-                }, taskCount);
-                calculator.Start();
-                tasks.Add(calculator);
-            }
-
-            while (true)
-            {
-                List<int> possibleAnswers = new List<int>();
-                foreach (Task<BuildingMove> t in tasks)
-                {
-                    if (t.IsCompleted && t.Result != null && t.Result.MoveSolvesBuilding)
-                        possibleAnswers.Add(t.Result.MoveDepth);
-                }
-
-                if (possibleAnswers.Count > 0)
-                {
-                    int bestAnswer = possibleAnswers.Min();
-                    _currentBestCandidate = bestAnswer;
-                    lock (currentProcessingDepth)
-                    {
-                        if (currentProcessingDepth.Count > 0)
-                        {
-                            if (bestAnswer < currentProcessingDepth.Values.Min())
-                            {
-                                Debug.WriteLine("Solved in direction " + (moveUpBias ? "Up" : "Down") + " with value of " + bestAnswer);
-                                breaker = true;
-                                return bestAnswer;
-                            }
-                        }
-                        else
-                        {
-                            Debug.WriteLine("Solved in direction " + (moveUpBias ? "Up" : "Down") + " with value of " + bestAnswer);
-                            return bestAnswer;
-                        }
-                    }
-                }
-                // Only check for a solution once every half second
-                Thread.Sleep(500);
-            }
-        }
-
         private int PROCESSING_POOL_SIZE = 5;
 
         private int SolveBuildingStateThreadWide(Building startState, bool moveUpBias)
@@ -337,7 +146,7 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
                     taskCount = nextLevelMoves.Count();
 
                 List<Task> tasks = new List<Task>();
-                for (int taskNum = 1; taskNum < taskCount; taskNum++)
+                for (int taskNum = 1; taskNum <= taskCount; taskNum++)
                 {
                     List<BuildingMove> taskMoves = new List<BuildingMove>();
                     if (taskNum < taskCount - 1)
@@ -385,48 +194,7 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
                 }                
             }           
         }
-
-        public void CalcMovesFullState(Building startState, List<BuildingMove> addMovesTo)
-        {
-            // Calculate the top level
-            CalcAllPossibleValidMoves(startState, addMovesTo, 1, true);
-            bool solved = false;
-            // Now calculate progressively deeper until the puzzle gets solved somewhere
-            while (!solved)
-            {
-                List<BuildingMove> leafNodes = FindLeafNodes(addMovesTo);
-                bool anyChildren = false;
-                foreach (BuildingMove move in leafNodes)
-                {
-                    CalcAllPossibleValidMoves(move.StateAfterMove, move.SubsequentMoves, move.MoveDepth + 1, true);
-                    if (move.SubsequentMoves.Count > 0)
-                        anyChildren = true;
-                    if (move.CommandTreeSolved())
-                        solved = true;
-                }
-
-                if (!anyChildren)
-                {
-                    Debug.WriteLine("Ran out of moves. Still not solved.");
-                    break;
-                }
-            }
-        }
-
-        private List<BuildingMove> FindLeafNodes(List<BuildingMove> addMovesTo)
-        {
-            List<BuildingMove> result = new List<BuildingMove>();
-
-            foreach(BuildingMove mv in addMovesTo)
-            {
-                if (mv.SubsequentMoves.Count == 0)
-                    result.Add(mv);
-                else
-                    result.AddRange(FindLeafNodes(mv.SubsequentMoves));
-            }
-            return result;
-        }
-
+        
         public void CalcAllPossibleValidMoves(Building startState, List<BuildingMove> addMovesTo, 
             int processingDepth, bool moveUpBias)
         {
@@ -622,8 +390,6 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
 
             // And represent the move
             BuildingMove bm = new BuildingMove();
-            bm.StartFloor = newStartFloor;
-            bm.EndFloor = newEndFloor;
             bm.StateAfterMove = moveEffect;
             bm.MoveDepth = Math.Abs(processingDepth) + Math.Abs(foundOppositeProcessingTerminus);
 
@@ -634,7 +400,6 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
             }
 
             bm.MoveSolvesBuilding = (foundOppositeProcessingTerminus != 0) || (processingDepth > 0 && moveEffect.BuildingSolved());
-            bm.ProcessedAtLevel = processingDepth;
 
             addMoveTo.Add(bm);
         }

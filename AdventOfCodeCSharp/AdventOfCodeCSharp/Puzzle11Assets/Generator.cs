@@ -10,7 +10,7 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
     {
         public int GeneratorNumber { get; set; }
 
-        public string Identifier { get; set; }
+        public int Identifier { get; set; }
 
     }
 }

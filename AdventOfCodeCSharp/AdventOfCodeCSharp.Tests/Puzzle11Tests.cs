@@ -26,20 +26,20 @@ namespace AdventOfCodeCSharp.Tests
             // |             f4               |               f3              |              f2                |              f1
             // e g g g g g g g m m m m m m m m e g g g g g g g m m m m m m m m e g g g g g g g m m m m m m m m e g g g g g g g m m m m m m m m   
             testBed.ElevatorOn = 3;
-            testBed.Floors[0].MicroChips.Add(new Microchip() { MicrochipNumber = 1, Identifier = "Whocares?" });
-            testBed.Floors[0].MicroChips.Add(new Microchip() { MicrochipNumber = 2, Identifier = "Whocares?" });
-            testBed.Floors[0].MicroChips.Add(new Microchip() { MicrochipNumber = 3, Identifier = "Whocares?" });
-            testBed.Floors[0].MicroChips.Add(new Microchip() { MicrochipNumber = 4, Identifier = "Whocares?" });
-            testBed.Floors[0].MicroChips.Add(new Microchip() { MicrochipNumber = 5, Identifier = "Whocares?" });
-            testBed.Floors[0].MicroChips.Add(new Microchip() { MicrochipNumber = 6, Identifier = "Whocares?" });
-            testBed.Floors[0].MicroChips.Add(new Microchip() { MicrochipNumber = 7, Identifier = "Whocares?" });
-            testBed.Floors[0].Generators.Add(new Generator() { GeneratorNumber = 1, Identifier = "Whocares?" });
-            testBed.Floors[0].Generators.Add(new Generator() { GeneratorNumber = 2, Identifier = "Whocares?" });
-            testBed.Floors[0].Generators.Add(new Generator() { GeneratorNumber = 3, Identifier = "Whocares?" });
-            testBed.Floors[0].Generators.Add(new Generator() { GeneratorNumber = 4, Identifier = "Whocares?" });
-            testBed.Floors[0].Generators.Add(new Generator() { GeneratorNumber = 5, Identifier = "Whocares?" });
-            testBed.Floors[0].Generators.Add(new Generator() { GeneratorNumber = 6, Identifier = "Whocares?" });
-            testBed.Floors[3].Generators.Add(new Generator() { GeneratorNumber = 7, Identifier = "Whocares?" });
+            testBed.Floors[0].MicroChips.Add(new Microchip() { MicrochipNumber = 1, Identifier = "Whocares?".GetHashCode() });
+            testBed.Floors[0].MicroChips.Add(new Microchip() { MicrochipNumber = 2, Identifier = "Whocares?".GetHashCode() });
+            testBed.Floors[0].MicroChips.Add(new Microchip() { MicrochipNumber = 3, Identifier = "Whocares?".GetHashCode() });
+            testBed.Floors[0].MicroChips.Add(new Microchip() { MicrochipNumber = 4, Identifier = "Whocares?".GetHashCode() });
+            testBed.Floors[0].MicroChips.Add(new Microchip() { MicrochipNumber = 5, Identifier = "Whocares?".GetHashCode() });
+            testBed.Floors[0].MicroChips.Add(new Microchip() { MicrochipNumber = 6, Identifier = "Whocares?".GetHashCode() });
+            testBed.Floors[0].MicroChips.Add(new Microchip() { MicrochipNumber = 7, Identifier = "Whocares?".GetHashCode() });
+            testBed.Floors[0].Generators.Add(new Generator() { GeneratorNumber = 1, Identifier = "Whocares?".GetHashCode() });
+            testBed.Floors[0].Generators.Add(new Generator() { GeneratorNumber = 2, Identifier = "Whocares?".GetHashCode() });
+            testBed.Floors[0].Generators.Add(new Generator() { GeneratorNumber = 3, Identifier = "Whocares?".GetHashCode() });
+            testBed.Floors[0].Generators.Add(new Generator() { GeneratorNumber = 4, Identifier = "Whocares?".GetHashCode() });
+            testBed.Floors[0].Generators.Add(new Generator() { GeneratorNumber = 5, Identifier = "Whocares?".GetHashCode() });
+            testBed.Floors[0].Generators.Add(new Generator() { GeneratorNumber = 6, Identifier = "Whocares?".GetHashCode() });
+            testBed.Floors[3].Generators.Add(new Generator() { GeneratorNumber = 7, Identifier = "Whocares?".GetHashCode() });
 
             long hash = testBed.Hash();
 
