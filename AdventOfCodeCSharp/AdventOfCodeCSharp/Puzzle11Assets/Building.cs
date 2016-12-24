@@ -40,22 +40,20 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
         {
             bool result = false;
 
-            if (_floors[_floors.Count - 1].Generators.Count > 0 &&
-                _floors[_floors.Count - 1].MicroChips.Count > 0)
+            if (_floors[_floors.Count - 1].Generators.Count() > 0 &&
+                _floors[_floors.Count - 1].MicroChips.Count() > 0)
                 result = true;
 
             for(int i = _floors.Count - 2; i >= 0; i--)
             {
-                if (_floors[i].Generators.Count > 0 ||
-                        _floors[i].MicroChips.Count > 0)
+                if (_floors[i].Generators.Count() > 0 ||
+                        _floors[i].MicroChips.Count() > 0)
                     result = false;
             }
 
             return result;
         }
 
-        int[] microchipHashKeys = { 1, 2, 4, 8, 16, 32, 64, 128 };
-        int[] generatorHashKeys = { 256, 512, 1024, 2048, 4096, 8192, 16384 };
         int elevatorPresentKey = 32768;
 
         public long Hash()
@@ -68,17 +66,7 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
             // e g g g g g g g m m m m m m m m e g g g g g g g m m m m m m m m e g g g g g g g m m m m m m m m e g g g g g g g m m m m m m m m   
             for (int floor = 0; floor < 4; floor++)
             {
-                long floorHash = 0;
-                Floor floorToHash = Floors[floor];
-                foreach (Microchip m in floorToHash.MicroChips)
-                {
-                    floorHash = floorHash + microchipHashKeys[m.MicrochipNumber - 1];
-                }
-
-                foreach (Generator g in floorToHash.Generators)
-                {
-                    floorHash = floorHash + generatorHashKeys[g.GeneratorNumber - 1];
-                }
+                long floorHash = Floors[floor].Hash;                
                 if (ElevatorOn == floor + 1)
                     floorHash += elevatorPresentKey;
                 long floorAdjustmentMultiplier = (long)Math.Pow(65536, floor);
@@ -87,16 +75,46 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
             return result;
         }
 
-        public string HashString()
+        /// <summary>
+        /// Important optimisation according to some dude on reddit:
+        /// https://www.reddit.com/r/adventofcode/comments/5hoia9/2016_day_11_solutions/db1v1ws/
+        /// </summary>
+        internal long[] EquivalentHashes()
         {
-            string result = ElevatorOn.ToString();
-            foreach (Floor f in Floors)
+            Dictionary<int, int> floorPairs = new Dictionary<int, int>();
+            foreach(Floor f in Floors)
             {
-                result += f.Hash;
+                for(int i = 1; i < 7; i++)
+                {
+                    if (f.ContainsGenerator(i) && f.ContainsChip(i))
+                        floorPairs[i] = f.FloorNumber;
+                }
             }
-            return result;
+
+            List<long> possibleAlternatives = new List<long>();
+            // Substitute every pair for every other pair in the building
+            foreach (var x in floorPairs)
+            {
+                foreach(var y in floorPairs)
+                {
+                    if (x.Key != y.Key && x.Value != y.Value)
+                    {
+                        Building alternate = Clone();
+                        alternate.Floors[x.Value - 1].RemoveGenerator(x.Key);
+                        alternate.Floors[x.Value - 1].RemoveMicrochip(x.Key);
+                        alternate.Floors[x.Value - 1].AddGenerator(y.Key);
+                        alternate.Floors[x.Value - 1].AddMicrochip(y.Key);
+
+                        alternate.Floors[y.Value - 1].RemoveGenerator(y.Key);
+                        alternate.Floors[y.Value - 1].RemoveMicrochip(y.Key);
+                        alternate.Floors[y.Value - 1].AddGenerator(x.Key);
+                        alternate.Floors[y.Value - 1].AddMicrochip(x.Key);
+                        possibleAlternatives.Add(alternate.Hash());
+                    }
+                }
+            }
+
+            return possibleAlternatives.ToArray();
         }
-
-
     }
 }

@@ -75,9 +75,7 @@
     <Compile Include="Puzzle11Assets\Building.cs" />
     <Compile Include="Puzzle11Assets\BuildingMaker.cs" />
     <Compile Include="Puzzle11Assets\Floor.cs" />
-    <Compile Include="Puzzle11Assets\Generator.cs" />
     <Compile Include="Puzzle11Assets\BuildingMove.cs" />
-    <Compile Include="Puzzle11Assets\Microchip.cs" />
     <Compile Include="Puzzle11Assets\MoveMaker.cs" />
     <Compile Include="Puzzle1b.cs" />
     <Compile Include="Puzzle1.cs" />

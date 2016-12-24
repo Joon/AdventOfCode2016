@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -10,13 +11,14 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
 {
     public class MoveMaker
     {
-        Dictionary<long, int> _processedHashes = new Dictionary<long, int>();
-        Dictionary<string, int> _processedHashesString = new Dictionary<string, int>();
-        
-        public bool HashStrings { get; set; }
+        List<HashSet<long>> _processedHashes = new List<HashSet<long>>();
+
         private int _consoleY;
+
         public int CalcMoveDepth(Building startState, Building desiredEndState)
         {
+            InitHashes();
+
             Console.CursorVisible = false;
             _consoleY = Console.CursorTop;
             Task<int> solveFromBottom = new Task<int>(() =>
@@ -30,7 +32,7 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
             });
 
             solveFromBottom.Start();
-            solveFromTop.Start();
+            //solveFromTop.Start();
 
             while (true)
             {
@@ -38,19 +40,27 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
                 // Only check for a solution once every half second
                 Thread.Sleep(500);
 
-                if (solveFromBottom.IsCompleted && solveFromTop.IsCompleted)
+                if (solveFromBottom.IsCompleted)// && solveFromTop.IsCompleted)
                     break;
             }
 
             Console.CursorVisible = true;
-            Console.SetCursorPosition(0, _consoleY + _tracking.Count + 2);
+            Console.SetCursorPosition(0, _consoleY + 4);
 
-            return Math.Min(solveFromBottom.Result, solveFromTop.Result); 
+            //return Math.Min(solveFromBottom.Result, solveFromTop.Result);
+            return solveFromBottom.Result;
         }
 
-        private int _currentBestCandidate = int.MaxValue;
+        private void InitHashes()
+        {
+            for (int i = 0; i < 10; i++)
+            {
+                _processedHashes.Add(new HashSet<long>());
+            }
+        }
 
-        private Dictionary<int, long> _tracking = new Dictionary<int, long>();
+        private Dictionary<int, int> _tracking = new Dictionary<int, int>();
+
         private void UpdateProcessingTracking(int level, int amountToAdd)
         {
             lock (_tracking)
@@ -126,58 +136,36 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
         private int SolveBuildingStateThreadWide(Building startState, bool moveUpBias)
         {
             // Calculate the top level
-            List<BuildingMove> nextLevelMoves = new List<BuildingMove>();
+            ConcurrentQueue<BuildingMove> nextLevelMoves = new ConcurrentQueue<BuildingMove>();
+            ConcurrentQueue<BuildingMove> thisLevelMoves = new ConcurrentQueue<BuildingMove>();
+            
             int directionMultiplier = moveUpBias ? 1 : -1;
-
-            CalcAllPossibleValidMoves(startState, nextLevelMoves, directionMultiplier, moveUpBias);
-            if (nextLevelMoves.Count == 0)
+            bool solved = false;
+            CalcAllPossibleValidMoves(startState, thisLevelMoves, directionMultiplier, moveUpBias, ref solved);
+            if (thisLevelMoves.IsEmpty)
             {
                 Debug.WriteLine("Moving " + (moveUpBias ? " up " : "down") + "found no possible moves");
                 return 0;
             }
-            UpdateProcessingTracking(directionMultiplier, nextLevelMoves.Count);
-                       
+            UpdateProcessingTracking(directionMultiplier, thisLevelMoves.Count);
+                        
             int moveLevel = directionMultiplier;
-            while (true)
+            while (!solved)
             {
                 moveLevel = moveLevel + directionMultiplier;
-                int taskCount = PROCESSING_POOL_SIZE;
-                if (taskCount > nextLevelMoves.Count())
-                    taskCount = nextLevelMoves.Count();
-
-                List<Task> tasks = new List<Task>();
-                for (int taskNum = 1; taskNum <= taskCount; taskNum++)
+                while (!thisLevelMoves.IsEmpty)
                 {
-                    List<BuildingMove> taskMoves = new List<BuildingMove>();
-                    if (taskNum < taskCount - 1)
-                    {
-                        taskMoves.AddRange(nextLevelMoves.Take(nextLevelMoves.Count / taskCount));
-                        nextLevelMoves.RemoveRange(0, nextLevelMoves.Count / taskCount);
+                    BuildingMove move;
+                    if (thisLevelMoves.TryDequeue(out move))
+                    {                                
+                        UpdateProcessingTracking(moveLevel, 1);
+                        CalcAllPossibleValidMoves(move.StateAfterMove, nextLevelMoves, moveLevel, moveUpBias, ref solved);
+                        if (solved)
+                            return moveLevel;
                     }
-                    else
-                    {
-                        taskMoves.AddRange(nextLevelMoves);
-                        nextLevelMoves.Clear();
-                    }
-                    Task calculator = new Task(() =>
-                    {
-                        foreach (BuildingMove move in taskMoves)
-                        {
-                            List<BuildingMove> leaves = new List<BuildingMove>();
-                            UpdateProcessingTracking(moveLevel, 1);
-                            CalcAllPossibleValidMoves(move.StateAfterMove, leaves, moveLevel, moveUpBias);
-                            lock (nextLevelMoves)
-                                nextLevelMoves.AddRange(leaves);
-                        }
-                    });
-                    tasks.Add(calculator);
+                    if (solved)
+                        break;
                 }
-
-                foreach (Task t in tasks)
-                    t.Start();
-
-                foreach (Task t in tasks)
-                    t.Wait();
                 
                 if (nextLevelMoves.Count == 0)
                 {
@@ -191,24 +179,29 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
                     {
                         return newMove.MoveDepth;
                     }
-                }                
-            }           
+                }
+                var temp = thisLevelMoves;
+                thisLevelMoves = nextLevelMoves;
+                nextLevelMoves = temp;
+            }
+            return Int32.MaxValue;
         }
         
-        public void CalcAllPossibleValidMoves(Building startState, List<BuildingMove> addMovesTo, 
-            int processingDepth, bool moveUpBias)
+        public void CalcAllPossibleValidMoves(Building startState, ConcurrentQueue<BuildingMove> addMovesTo, 
+            int processingDepth, bool moveUpBias, ref bool solved)
         {
             Floor processFloor = startState.Floors[startState.ElevatorOn - 1];
-            MakeMicrochipMoves(startState, addMovesTo, processFloor, processingDepth, moveUpBias);
-            MakeGeneratorOnlyMoves(startState, addMovesTo, processFloor, processingDepth, moveUpBias);
+            MakeMicrochipMoves(startState, addMovesTo, processFloor, processingDepth, moveUpBias, ref solved);
+            MakeGeneratorOnlyMoves(startState, addMovesTo, processFloor, processingDepth, moveUpBias, ref solved);
         }
 
-        private void MakeGeneratorOnlyMoves(Building startState, List<BuildingMove> result, Floor processFloor, 
-            int processingDepth, bool moveUpBias)
+        private void MakeGeneratorOnlyMoves(Building startState, ConcurrentQueue<BuildingMove> result, Floor processFloor, 
+            int processingDepth, bool moveUpBias, ref bool solved)
         {
-            foreach (Generator g1 in processFloor.Generators)
+            IEnumerable<int> generators = processFloor.Generators;
+            foreach (int g1 in generators)
             {
-                foreach (Generator g2 in processFloor.Generators)
+                foreach (int g2 in generators)
                 {
                     if (g1 == g2)
                     {
@@ -216,13 +209,13 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
                         if (startState.ElevatorOn < startState.Floors.Count)
                         {
                             Floor endFloor = startState.Floors[startState.ElevatorOn];
-                            MakeMoveIfValid(null, null, g1, null, processFloor, endFloor, startState, result, processingDepth);
+                            MakeMoveIfValid(0, 0, g1, 0, processFloor, endFloor, startState, result, processingDepth, ref solved);
                         }
                         // Can we go down?
                         if (startState.ElevatorOn > 1)
                         {
                             Floor endFloor = startState.Floors[startState.ElevatorOn - 2];
-                            MakeMoveIfValid(null, null, g1, null, processFloor, endFloor, startState, result, processingDepth);
+                            MakeMoveIfValid(0, 0, g1, 0, processFloor, endFloor, startState, result, processingDepth, ref solved);
                         }
                     }
                     else
@@ -233,7 +226,7 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
                             if (startState.ElevatorOn < startState.Floors.Count)
                             {
                                 Floor endFloor = startState.Floors[startState.ElevatorOn];
-                                MakeMoveIfValid(null, null, g1, g2, processFloor, endFloor, startState, result, processingDepth);
+                                MakeMoveIfValid(0, 0, g1, g2, processFloor, endFloor, startState, result, processingDepth, ref solved);
                             }
                         }
                         else
@@ -242,7 +235,7 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
                             if (startState.ElevatorOn > 1)
                             {
                                 Floor endFloor = startState.Floors[startState.ElevatorOn - 2];
-                                MakeMoveIfValid(null, null, g1, g2, processFloor, endFloor, startState, result, processingDepth);
+                                MakeMoveIfValid(0, 0, g1, g2, processFloor, endFloor, startState, result, processingDepth, ref solved);
                             }
                         }
                     }
@@ -250,12 +243,14 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
             }
         }
 
-        private void MakeMicrochipMoves(Building startState, List<BuildingMove> result, Floor processFloor,
-            int processingDepth, bool moveUpBias)
+        private void MakeMicrochipMoves(Building startState, ConcurrentQueue<BuildingMove> result, Floor processFloor,
+            int processingDepth, bool moveUpBias, ref bool solved)
         {
-            foreach (Microchip mc1 in processFloor.MicroChips)
+            IEnumerable<int> microchips = processFloor.MicroChips;
+
+            foreach (int mc1 in microchips)
             {
-                foreach (Microchip mc2 in processFloor.MicroChips)
+                foreach (int mc2 in microchips)
                 {
                     if (mc1 == mc2)
                     {
@@ -263,12 +258,12 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
                         if (startState.ElevatorOn < startState.Floors.Count)
                         {
                             Floor endFloor = startState.Floors[startState.ElevatorOn];
-                            MakeMoveIfValid(mc1, null, null, null, processFloor, endFloor, startState, result, processingDepth);
+                            MakeMoveIfValid(mc1, 0, 0, 0, processFloor, endFloor, startState, result, processingDepth, ref solved);
                             if (moveUpBias)
                             {
-                                foreach (Generator g in processFloor.Generators)
+                                foreach (int g in processFloor.Generators)
                                 {
-                                    MakeMoveIfValid(mc1, null, g, null, processFloor, endFloor, startState, result, processingDepth);
+                                    MakeMoveIfValid(mc1, 0, g, 0, processFloor, endFloor, startState, result, processingDepth, ref solved);
                                 }
                             }
                         }
@@ -276,12 +271,12 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
                         if (startState.ElevatorOn > 1)
                         {
                             Floor endFloor = startState.Floors[startState.ElevatorOn - 2];
-                            MakeMoveIfValid(mc1, null, null, null, processFloor, endFloor, startState, result, processingDepth);
+                            MakeMoveIfValid(mc1, 0, 0, 0, processFloor, endFloor, startState, result, processingDepth, ref solved);
                             if (!moveUpBias)
                             {
-                                foreach (Generator g in processFloor.Generators)
+                                foreach (int g in processFloor.Generators)
                                 {
-                                    MakeMoveIfValid(mc1, null, g, null, processFloor, endFloor, startState, result, processingDepth);
+                                    MakeMoveIfValid(mc1, 0, g, 0, processFloor, endFloor, startState, result, processingDepth, ref solved);
                                 }
                             }
                         }
@@ -293,7 +288,7 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
                             if (startState.ElevatorOn < startState.Floors.Count)
                             {
                                 Floor endFloor = startState.Floors[startState.ElevatorOn];
-                                MakeMoveIfValid(mc1, mc2, null, null, processFloor, endFloor, startState, result, processingDepth);
+                                MakeMoveIfValid(mc1, mc2, 0, 0, processFloor, endFloor, startState, result, processingDepth, ref solved);
                             }
                         }
                         else
@@ -302,7 +297,7 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
                             if (startState.ElevatorOn > 1)
                             {
                                 Floor endFloor = startState.Floors[startState.ElevatorOn - 2];
-                                MakeMoveIfValid(mc1, mc2, null, null, processFloor, endFloor, startState, result, processingDepth);
+                                MakeMoveIfValid(mc1, mc2, 0, 0, processFloor, endFloor, startState, result, processingDepth, ref solved);
                             }
                         }
                     }
@@ -310,84 +305,89 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
             }
         }
 
-        private void MakeMoveIfValid(Microchip mc1, Microchip mc2, Generator g1, Generator g2, Floor startFloor,
-            Floor endFloor, Building startState, List<BuildingMove> addMoveTo, int processingDepth)
+        private void MakeMoveIfValid(int mc1, int mc2, int g1, int g2, Floor startFloor,
+            Floor endFloor, Building startState, ConcurrentQueue<BuildingMove> addMoveTo, 
+            int processingDepth, ref bool solved)
         {
-            if (mc1 == null && mc2 == null && g1 == null && g2 == null)
+            if (mc1 == 0 && mc2 == 0 && g1 == 0 && g2 == 0)
                 throw new ArgumentException("Need a generator or a chip in the elevator");
             // If both are supplied, their identifiers have to match else no dice
-            if (mc1 != null && g1 != null && mc1.Identifier != g1.Identifier)
+            if (mc1 != 0 && g1 != 0 && mc1 != g1)
                 return;
             // We only have a chip so we have to validate it can go to the target floor
-            if (mc1 != null && g1 == null)
+            if (mc1 != 0 && g1 == 0)
             {
-                if (endFloor.Generators.Count > 0)
+                if (endFloor.Generators.Count() > 0)
                 {
-                    if (!FloorContainsGenerator(mc1, endFloor))
+                    if (!endFloor.ContainsGenerator(mc1))
                         return;
-                    if (!FloorContainsGenerator(mc2, endFloor))
-                        return;
+                    if (mc2 > 0)
+                    {
+                        if (!endFloor.ContainsGenerator(mc2))
+                            return;
+                    }
                 }
+            }
+            IEnumerable<int> leftChips = startFloor.MicroChips;
+            // If this move would leave a currently paired chip behind to fry, it is not valid
+            if (g1 > 0 && g1 != mc1 && g1 != mc2)
+            {
+                if (startFloor.ContainsChip(g1))
+                    return;
+            }
+            if (g2 > 0 && g2 != mc1 && g2 != mc2)
+            {
+                if (startFloor.ContainsChip(g2))
+                    return;
             }
             // Now we know the move is valid, create a representation of what it would do
             Building moveEffect = startState.Clone();
             Floor newStartFloor = moveEffect.Floors[startFloor.FloorNumber - 1];
             Floor newEndFloor = moveEffect.Floors[endFloor.FloorNumber - 1];
-            if (mc1 != null)
+            if (mc1 != 0)
             {
-                newStartFloor.MicroChips.Remove(mc1);
-                newEndFloor.MicroChips.Add(mc1);
+                newStartFloor.RemoveMicrochip(mc1);
+                newEndFloor.AddMicrochip(mc1);
             }
-            if (mc2 != null)
+            if (mc2 != 0)
             {
-                newStartFloor.MicroChips.Remove(mc2);
-                newEndFloor.MicroChips.Add(mc2);
+                newStartFloor.RemoveMicrochip(mc2);
+                newEndFloor.AddMicrochip(mc2);
             }
-            if (g1 != null)
+            if (g1 != 0)
             {
-                newStartFloor.Generators.Remove(g1);
-                newEndFloor.Generators.Add(g1);
+                newStartFloor.RemoveGenerator(g1);
+                newEndFloor.AddGenerator(g1);
             }
-            if (g2 != null)
+            if (g2 != 0)
             {
-                newStartFloor.Generators.Remove(g2);
-                newEndFloor.Generators.Add(g2);
+                newStartFloor.RemoveGenerator(g2);
+                newEndFloor.AddGenerator(g2);
             }
             moveEffect.ElevatorOn = newEndFloor.FloorNumber;
 
             int foundOppositeProcessingTerminus = 0;
             // An optmization to stop the same situation from being processed over and over again. Once a
             // particular state has been processed, it isn't ever reprocessed
-            if (HashStrings)
+            long hash = moveEffect.Hash();
+            long[] equivalentHashes = moveEffect.EquivalentHashes();
+            lock (_processedHashes)
             {
-                string hashS = moveEffect.HashString();
-                lock (_processedHashesString)
+                if (_processedHashes[Math.Abs((int)(hash % 10))].Contains(hash))
                 {
-                    if (_processedHashesString.ContainsKey(hashS))
-                    {
-                        if (Math.Sign(_processedHashesString[hashS]) == Math.Sign(processingDepth))
-                            return;
-                        else
-                            foundOppositeProcessingTerminus = _processedHashesString[hashS];
-                        _processedHashesString[hashS] = processingDepth;
-                    }
+                    return;
                 }
-            } else
-            {
-                long hash = moveEffect.Hash();
-                lock (_processedHashes)
-                {
-                    if (_processedHashes.ContainsKey(hash))
-                    {
-                        if (Math.Sign(_processedHashes[hash]) == Math.Sign(processingDepth))
-                            return;
-                        else
-                            foundOppositeProcessingTerminus = _processedHashes[hash];
-                    }
-                    _processedHashes[hash] = processingDepth;
-                }
+                _processedHashes[Math.Abs((int)(hash % 10))].Add(hash);
             }
-
+            foreach(long sameHash in equivalentHashes)
+            {
+                if (_processedHashes[Math.Abs((int)(hash % 10))].Contains(sameHash))
+                {
+                    return;
+                }
+                _processedHashes[Math.Abs((int)(hash % 10))].Add(sameHash);
+            }
+            
             // And represent the move
             BuildingMove bm = new BuildingMove();
             bm.StateAfterMove = moveEffect;
@@ -396,29 +396,14 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
             if (foundOppositeProcessingTerminus > 0)
             {
                 Debug.WriteLine("Found opposite processing end at level " + foundOppositeProcessingTerminus +
-                    " while processing at level " + processingDepth); 
+                    " while processing at level " + processingDepth);
             }
 
             bm.MoveSolvesBuilding = (foundOppositeProcessingTerminus != 0) || (processingDepth > 0 && moveEffect.BuildingSolved());
-
-            addMoveTo.Add(bm);
-        }
-
-        private static bool FloorContainsGenerator(Microchip mc, Floor endFloor)
-        {
-            if (mc == null)
-                return true;
-            bool found = false;
-            foreach (Generator gg in endFloor.Generators)
-            {
-                if (gg.Identifier == mc.Identifier)
-                {
-                    found = true;
-                }
-                break;
-            }
-
-            return found;
+            if (bm.MoveSolvesBuilding)
+                solved = true;
+            lock(addMoveTo)
+                addMoveTo.Enqueue(bm);
         }
     }
 }

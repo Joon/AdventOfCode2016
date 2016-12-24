@@ -21,8 +21,8 @@ namespace AdventOfCodeCSharp
 
             Stopwatch watch = new Stopwatch();
             watch.Start();
-            mover.HashStrings = false;
-            int lowestLongSolution = mover.CalcMoveDepth(startState, endState);
+            
+int lowestLongSolution = mover.CalcMoveDepth(startState, endState);
             watch.Stop();
             Console.WriteLine("It took " + watch.Elapsed.ToString() + " to process, with result " + lowestLongSolution);
             
@@ -35,7 +35,7 @@ namespace AdventOfCodeCSharp
             Building startState = maker.BuildingForPuzzle2Input();
             Building endState = maker.SolvedBuilding(startState);
             MoveMaker mover = new MoveMaker();
-            mover.HashStrings = false;
+            
             List<BuildingMove> possibleSolutions = new List<BuildingMove>();
             Stopwatch watch = new Stopwatch();
             watch.Start();
