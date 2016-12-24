@@ -8,6 +8,11 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
 {
     public class Floor
     {
+        // We hash the floors using two bytes (one for generators, one for microchips). This implementation
+        // expects a max of 7 of each
+        //  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
+        //               f1
+        //  x g g g g g g g x m m m m m m m   
         private int _floorState;
 
         int[] microchipHashKeys = { 1, 2, 4, 8, 16, 32, 64, 128 };

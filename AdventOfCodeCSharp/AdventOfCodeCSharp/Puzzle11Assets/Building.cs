@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace AdventOfCodeCSharp.Puzzle11Assets
 {
-    public class Building
+    public class Building : IEquatable<Building>
     {
         private List<Floor> _floors;
 
@@ -115,6 +115,21 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
             }
 
             return possibleAlternatives.ToArray();
+        }
+        
+        public bool Equals(Building other)
+        {
+            return Hash() == other.Hash();
+        }
+
+        public override bool Equals(object obj)
+        {
+            return Equals(obj as Building);
+        }
+
+        public override int GetHashCode()
+        {
+            return Hash().GetHashCode();
         }
     }
 }

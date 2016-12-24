@@ -15,6 +15,114 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
 
         private int _consoleY;
 
+        private const int INFINITY = -1;
+
+        public int CalcMoveDepthAStar(Building startState, Building desiredEndState)
+        {
+            Console.CursorVisible = false;
+            _consoleY = Console.CursorTop;
+
+            try
+            {
+                // The set of nodes already evaluated.
+                HashSet<long> closedSet = new HashSet<long>();
+
+                // The set of currently discovered nodes still to be evaluated.
+                // Initially, only the start node is known.
+                List<Building> openSet = new List<Building>();
+                openSet.Add(startState);
+
+                // For each node, which node it can most efficiently be reached from.
+                // If a node can be reached from many nodes, cameFrom will eventually contain the
+                // most efficient previous step.
+                Dictionary<long, long> cameFrom = new Dictionary<long, long>();
+
+                // For each node, the cost of getting from the start node to that node.
+                Dictionary<Building, int> gScore = new Dictionary<Building, int>();
+                // The cost of going from start to start is zero.
+                gScore[startState] = 0;
+
+                // For each node, the total cost of getting from the start node to the goal
+                // by passing by that node. That value is partly known, partly heuristic.
+                Dictionary<long, int> fScore = new Dictionary<long, int>();
+
+                // For the first node, that value is completely heuristic.
+                fScore[startState.Hash()] = heuristic_cost_estimate(startState);
+
+                while (openSet.Count > 0)
+                {
+                    Console.SetCursorPosition(0, _consoleY);
+                    Console.Write("Queue depth: " + openSet.Count + " Hashes processed: " + _processedHashes.Count);
+
+                    var v = from f in openSet
+                            join j in fScore
+                            on f.Hash() equals j.Key
+                            select new { score = j.Value, building = f };
+                    var scores = v.ToList();
+                    int minValue = scores.Min(o => o.score);
+
+                    // the node in openSet having the lowest fScore[] value
+                    Building current = scores.First(o => o.score == minValue).building;
+
+                    if (current.Hash() == desiredEndState.Hash())
+                        return reconstruct_path(cameFrom, current).Count - 1;
+
+                    openSet.Remove(current);
+                    closedSet.Add(current.Hash());
+                    ConcurrentQueue<BuildingMove> neighbours = new ConcurrentQueue<BuildingMove>();
+                    bool solved = false;
+                    CalcAllPossibleValidMoves(current, neighbours, 0, true, ref solved);
+                    foreach (BuildingMove bm in neighbours)
+                    {
+                        // Ignore the neighbor which is already evaluated.
+                        if (closedSet.Contains(bm.StateAfterMove.Hash()))
+                            continue;
+                        // The distance from start to a neighbor
+                        int tentative_gScore = gScore[current] + 1;
+                        // Discover a new node
+                        if (!openSet.Contains(bm.StateAfterMove))
+                            openSet.Add(bm.StateAfterMove);
+                        else if (tentative_gScore >= gScore[bm.StateAfterMove])
+                            continue; // This is not a better path.
+
+                        // This path is the best until now. Record it!
+                        cameFrom[bm.StateAfterMove.Hash()] = current.Hash();
+                        gScore[bm.StateAfterMove] = tentative_gScore;
+                        fScore[bm.StateAfterMove.Hash()] = gScore[bm.StateAfterMove] + heuristic_cost_estimate(bm.StateAfterMove);
+                    }
+                }
+                return -1;
+            } finally
+            {
+                Console.CursorVisible = true;
+                Console.SetCursorPosition(0, _consoleY + 3);
+            }
+        }
+
+        private List<long> reconstruct_path(Dictionary<long, long> cameFrom, Building current)
+        {
+            List<long> result = new List<long>();
+            result.Add(current.Hash());
+            long tempCurrent = current.Hash();
+            while (cameFrom.ContainsKey(tempCurrent))
+            {
+                tempCurrent = cameFrom[tempCurrent];
+                result.Add(tempCurrent);
+            }
+            return result;
+        }
+
+        private int heuristic_cost_estimate(Building state)
+        {
+            int score = 0;
+            for (int i = 1; i <= 3; i++)
+            {
+                score += state.Floors[3 - i].Generators.Count() * i * 10;
+                score += state.Floors[3 - i].MicroChips.Count() * i * 10;
+            }
+            return score; 
+        }
+
         public int CalcMoveDepth(Building startState, Building desiredEndState)
         {
             InitHashes();
@@ -198,27 +306,20 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
         private void MakeGeneratorOnlyMoves(Building startState, ConcurrentQueue<BuildingMove> result, Floor processFloor, 
             int processingDepth, bool moveUpBias, ref bool solved)
         {
+            bool allFloorsBelowEmpty = true;
+            for (int i = startState.ElevatorOn - 1; i >= 0; i--)
+            {
+                if (startState.Floors[i].Hash != 0)
+                    allFloorsBelowEmpty = false;
+            }
+            
             IEnumerable<int> generators = processFloor.Generators;
             foreach (int g1 in generators)
             {
+                bool movedTwoGennies = false;
                 foreach (int g2 in generators)
-                {
-                    if (g1 == g2)
-                    {
-                        // Can we go up?
-                        if (startState.ElevatorOn < startState.Floors.Count)
-                        {
-                            Floor endFloor = startState.Floors[startState.ElevatorOn];
-                            MakeMoveIfValid(0, 0, g1, 0, processFloor, endFloor, startState, result, processingDepth, ref solved);
-                        }
-                        // Can we go down?
-                        if (startState.ElevatorOn > 1)
-                        {
-                            Floor endFloor = startState.Floors[startState.ElevatorOn - 2];
-                            MakeMoveIfValid(0, 0, g1, 0, processFloor, endFloor, startState, result, processingDepth, ref solved);
-                        }
-                    }
-                    else
+                {   
+                    if (g1 != g2)
                     {
                         if (moveUpBias)
                         {
@@ -226,18 +327,35 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
                             if (startState.ElevatorOn < startState.Floors.Count)
                             {
                                 Floor endFloor = startState.Floors[startState.ElevatorOn];
-                                MakeMoveIfValid(0, 0, g1, g2, processFloor, endFloor, startState, result, processingDepth, ref solved);
+                                if (MakeMoveIfValid(0, 0, g1, g2, processFloor, endFloor, startState, result, processingDepth, ref solved))
+                                    movedTwoGennies = true;
                             }
                         }
                         else
                         { 
                             // Can we go down?
-                            if (startState.ElevatorOn > 1)
+                            if (startState.ElevatorOn > 1 && !allFloorsBelowEmpty)
                             {
                                 Floor endFloor = startState.Floors[startState.ElevatorOn - 2];
-                                MakeMoveIfValid(0, 0, g1, g2, processFloor, endFloor, startState, result, processingDepth, ref solved);
+                                if (MakeMoveIfValid(0, 0, g1, g2, processFloor, endFloor, startState, result, processingDepth, ref solved))
+                                    movedTwoGennies = false;
                             }
                         }
+                    }
+                }
+                if (!movedTwoGennies)
+                {
+                    // Can we go up?
+                    if (startState.ElevatorOn < startState.Floors.Count)
+                    {
+                        Floor endFloor = startState.Floors[startState.ElevatorOn];
+                        MakeMoveIfValid(0, 0, g1, 0, processFloor, endFloor, startState, result, processingDepth, ref solved);
+                    }
+                    // Can we go down?
+                    if (startState.ElevatorOn > 1 && !allFloorsBelowEmpty)
+                    {
+                        Floor endFloor = startState.Floors[startState.ElevatorOn - 2];
+                        MakeMoveIfValid(0, 0, g1, 0, processFloor, endFloor, startState, result, processingDepth, ref solved);
                     }
                 }
             }
@@ -246,41 +364,21 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
         private void MakeMicrochipMoves(Building startState, ConcurrentQueue<BuildingMove> result, Floor processFloor,
             int processingDepth, bool moveUpBias, ref bool solved)
         {
+            bool allFloorsBelowEmpty = true;
+            for (int i = startState.ElevatorOn - 1; i >= 0; i--)
+            {
+                if (startState.Floors[i].Hash != 0)
+                    allFloorsBelowEmpty = false;
+            }
+
             IEnumerable<int> microchips = processFloor.MicroChips;
 
             foreach (int mc1 in microchips)
             {
+                bool movedTwoMicrochips = false;
                 foreach (int mc2 in microchips)
                 {
-                    if (mc1 == mc2)
-                    {
-                        // Can we go up?
-                        if (startState.ElevatorOn < startState.Floors.Count)
-                        {
-                            Floor endFloor = startState.Floors[startState.ElevatorOn];
-                            MakeMoveIfValid(mc1, 0, 0, 0, processFloor, endFloor, startState, result, processingDepth, ref solved);
-                            if (moveUpBias)
-                            {
-                                foreach (int g in processFloor.Generators)
-                                {
-                                    MakeMoveIfValid(mc1, 0, g, 0, processFloor, endFloor, startState, result, processingDepth, ref solved);
-                                }
-                            }
-                        }
-                        // Can we go down?
-                        if (startState.ElevatorOn > 1)
-                        {
-                            Floor endFloor = startState.Floors[startState.ElevatorOn - 2];
-                            MakeMoveIfValid(mc1, 0, 0, 0, processFloor, endFloor, startState, result, processingDepth, ref solved);
-                            if (!moveUpBias)
-                            {
-                                foreach (int g in processFloor.Generators)
-                                {
-                                    MakeMoveIfValid(mc1, 0, g, 0, processFloor, endFloor, startState, result, processingDepth, ref solved);
-                                }
-                            }
-                        }
-                    } else
+                    if (mc1 != mc2)
                     {
                         if (moveUpBias)
                         {
@@ -294,10 +392,39 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
                         else
                         {
                             // Can we go down?
-                            if (startState.ElevatorOn > 1)
+                            if (startState.ElevatorOn > 1 && !allFloorsBelowEmpty)
                             {
                                 Floor endFloor = startState.Floors[startState.ElevatorOn - 2];
                                 MakeMoveIfValid(mc1, mc2, 0, 0, processFloor, endFloor, startState, result, processingDepth, ref solved);
+                            }
+                        }
+                    }
+                    
+                    // Can we go up?
+                    if (startState.ElevatorOn < startState.Floors.Count)
+                    {
+                        Floor endFloor = startState.Floors[startState.ElevatorOn];
+                        if (!movedTwoMicrochips)
+                            MakeMoveIfValid(mc1, 0, 0, 0, processFloor, endFloor, startState, result, processingDepth, ref solved);
+                        if (moveUpBias)
+                        {
+                            foreach (int g in processFloor.Generators)
+                            {
+                                MakeMoveIfValid(mc1, 0, g, 0, processFloor, endFloor, startState, result, processingDepth, ref solved);
+                            }
+                        }
+                    }
+                    // Can we go down?
+                    if (startState.ElevatorOn > 1 && !allFloorsBelowEmpty)
+                    {
+                        Floor endFloor = startState.Floors[startState.ElevatorOn - 2];
+                        if (!movedTwoMicrochips)
+                            MakeMoveIfValid(mc1, 0, 0, 0, processFloor, endFloor, startState, result, processingDepth, ref solved);
+                        if (!moveUpBias)
+                        {
+                            foreach (int g in processFloor.Generators)
+                            {
+                                MakeMoveIfValid(mc1, 0, g, 0, processFloor, endFloor, startState, result, processingDepth, ref solved);
                             }
                         }
                     }
@@ -305,7 +432,7 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
             }
         }
 
-        private void MakeMoveIfValid(int mc1, int mc2, int g1, int g2, Floor startFloor,
+        private bool MakeMoveIfValid(int mc1, int mc2, int g1, int g2, Floor startFloor,
             Floor endFloor, Building startState, ConcurrentQueue<BuildingMove> addMoveTo, 
             int processingDepth, ref bool solved)
         {
@@ -313,18 +440,18 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
                 throw new ArgumentException("Need a generator or a chip in the elevator");
             // If both are supplied, their identifiers have to match else no dice
             if (mc1 != 0 && g1 != 0 && mc1 != g1)
-                return;
+                return false;
             // We only have a chip so we have to validate it can go to the target floor
             if (mc1 != 0 && g1 == 0)
             {
                 if (endFloor.Generators.Count() > 0)
                 {
                     if (!endFloor.ContainsGenerator(mc1))
-                        return;
+                        return false;
                     if (mc2 > 0)
                     {
                         if (!endFloor.ContainsGenerator(mc2))
-                            return;
+                            return false;
                     }
                 }
             }
@@ -333,12 +460,12 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
             if (g1 > 0 && g1 != mc1 && g1 != mc2)
             {
                 if (startFloor.ContainsChip(g1))
-                    return;
+                    return false;
             }
             if (g2 > 0 && g2 != mc1 && g2 != mc2)
             {
                 if (startFloor.ContainsChip(g2))
-                    return;
+                    return false;
             }
             // Now we know the move is valid, create a representation of what it would do
             Building moveEffect = startState.Clone();
@@ -369,25 +496,28 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
             int foundOppositeProcessingTerminus = 0;
             // An optmization to stop the same situation from being processed over and over again. Once a
             // particular state has been processed, it isn't ever reprocessed
-            long hash = moveEffect.Hash();
-            long[] equivalentHashes = moveEffect.EquivalentHashes();
-            lock (_processedHashes)
+            if (_processedHashes.Count > 0)
             {
-                if (_processedHashes[Math.Abs((int)(hash % 10))].Contains(hash))
+                long hash = moveEffect.Hash();
+                long[] equivalentHashes = moveEffect.EquivalentHashes();
+                lock (_processedHashes)
                 {
-                    return;
+                    if (_processedHashes[Math.Abs((int)(hash % 10))].Contains(hash))
+                    {
+                        return false;
+                    }
+                    _processedHashes[Math.Abs((int)(hash % 10))].Add(hash);
                 }
-                _processedHashes[Math.Abs((int)(hash % 10))].Add(hash);
-            }
-            foreach(long sameHash in equivalentHashes)
-            {
-                if (_processedHashes[Math.Abs((int)(hash % 10))].Contains(sameHash))
+                foreach (long sameHash in equivalentHashes)
                 {
-                    return;
+                    if (_processedHashes[Math.Abs((int)(hash % 10))].Contains(sameHash))
+                    {
+                        return false;
+                    }
+                    _processedHashes[Math.Abs((int)(hash % 10))].Add(sameHash);
                 }
-                _processedHashes[Math.Abs((int)(hash % 10))].Add(sameHash);
             }
-            
+
             // And represent the move
             BuildingMove bm = new BuildingMove();
             bm.StateAfterMove = moveEffect;
@@ -404,6 +534,7 @@ namespace AdventOfCodeCSharp.Puzzle11Assets
                 solved = true;
             lock(addMoveTo)
                 addMoveTo.Enqueue(bm);
+            return true;
         }
     }
 }

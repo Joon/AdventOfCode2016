@@ -22,7 +22,7 @@ namespace AdventOfCodeCSharp
             }
             else
             {
-                if (puzzle.EndsWith("b"))
+                if (puzzle.EndsWith("b") || puzzle.EndsWith("a"))
                     input = File.ReadAllText(string.Format(@"c:\Work\AdventOfCode\Inputs\Input{0}.txt", puzzle.Substring(0, puzzle.Length - 1)));
                 else
                     input = File.ReadAllText(string.Format(@"c:\Work\AdventOfCode\Inputs\Input{0}.txt", puzzle));
@@ -116,6 +116,10 @@ namespace AdventOfCodeCSharp
                 case "11":
                     var puzzle11 = new Puzzle11();
                     intAnswer = puzzle11.CalcShortestSolution();
+                    break;
+                case "11a":
+                    var puzzle11a = new Puzzle11();
+                    intAnswer = puzzle11a.CalcAStarSolution();
                     break;
                 case "11b":
                     var puzzle11b = new Puzzle11();
