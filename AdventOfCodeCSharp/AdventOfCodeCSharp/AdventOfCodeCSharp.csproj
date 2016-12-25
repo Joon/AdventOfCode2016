@@ -77,6 +77,8 @@
     <Compile Include="Puzzle11Assets\Floor.cs" />
     <Compile Include="Puzzle11Assets\BuildingMove.cs" />
     <Compile Include="Puzzle11Assets\MoveMaker.cs" />
+    <Compile Include="Puzzle12.cs" />
+    <Compile Include="Puzzle13.cs" />
     <Compile Include="Puzzle1b.cs" />
     <Compile Include="Puzzle1.cs" />
     <Compile Include="Puzzle2b.cs" />

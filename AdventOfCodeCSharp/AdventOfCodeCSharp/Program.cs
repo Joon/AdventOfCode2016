@@ -14,7 +14,7 @@ namespace AdventOfCodeCSharp
             Console.WriteLine("Puzzle number: ");
             string puzzle = Console.ReadLine();
 
-            string input;
+            string input = "";
             if (args.Length > 0 && args[0] == "i")
             {
                 Console.WriteLine("Interactive puzzle input: ");
@@ -22,10 +22,13 @@ namespace AdventOfCodeCSharp
             }
             else
             {
+                string fileName;
                 if (puzzle.EndsWith("b") || puzzle.EndsWith("a"))
-                    input = File.ReadAllText(string.Format(@"c:\Work\AdventOfCode\Inputs\Input{0}.txt", puzzle.Substring(0, puzzle.Length - 1)));
+                    fileName = string.Format(@"c:\Work\AdventOfCode\Inputs\Input{0}.txt", puzzle.Substring(0, puzzle.Length - 1));
                 else
-                    input = File.ReadAllText(string.Format(@"c:\Work\AdventOfCode\Inputs\Input{0}.txt", puzzle));
+                    fileName = string.Format(@"c:\Work\AdventOfCode\Inputs\Input{0}.txt", puzzle);
+                if (File.Exists(fileName))
+                    input = File.ReadAllText(fileName);
             }
 
             int intAnswer = -9999;
@@ -124,6 +127,24 @@ namespace AdventOfCodeCSharp
                 case "11b":
                     var puzzle11b = new Puzzle11();
                     intAnswer = puzzle11b.CalcShortestSolutionWithExtra();
+                    break;
+                case "12":
+                    var puzzle12 = new Puzzle12();
+                    intAnswer = puzzle12.SolvePuzzle(input, false);
+                    break;
+                case "12b":
+                    var puzzle12b = new Puzzle12();
+                    intAnswer = puzzle12b.SolvePuzzle(input, true);
+                    break;
+                case "13":
+                    var puzzle13 = new Puzzle13();
+                    //intAnswer = puzzle13.SolvePuzzle(10, 7, 4);
+                    intAnswer = puzzle13.SolvePuzzle(1352, 31, 39);
+                    break;
+                case "13b":
+                    var puzzle13b = new Puzzle13();
+                    //intAnswer = puzzle13.SolvePuzzle(10, 7, 4);
+                    intAnswer = puzzle13b.SolvePart2(50, 1352);
                     break;
             }
             if (!string.IsNullOrEmpty(stringAnswer))
