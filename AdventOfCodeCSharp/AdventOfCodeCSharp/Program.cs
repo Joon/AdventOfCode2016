@@ -146,6 +146,23 @@ namespace AdventOfCodeCSharp
                     //intAnswer = puzzle13.SolvePuzzle(10, 7, 4);
                     intAnswer = puzzle13b.SolvePart2(50, 1352);
                     break;
+                case "14":
+                    var puzzle14 = new Puzzle14();
+                    intAnswer = puzzle14.SolvePuzzle("jlmsuwbz");
+                    break;
+                case "14b":
+                    var puzzle14b = new Puzzle14();
+                    intAnswer = puzzle14b.SolvePuzzlePart2("jlmsuwbz");
+                    //intAnswer = puzzle14b.SolvePuzzlePart2("abc");
+                    break;
+                case "15":
+                    var puzzle15 = new Puzzle15();
+                    intAnswer = puzzle15.SolvePuzzle(input);
+                    break;
+                case "15b":
+                    var puzzle15b = new Puzzle15();
+                    intAnswer = puzzle15b.SolvePuzzlePart2(input);
+                    break;
             }
             if (!string.IsNullOrEmpty(stringAnswer))
             {

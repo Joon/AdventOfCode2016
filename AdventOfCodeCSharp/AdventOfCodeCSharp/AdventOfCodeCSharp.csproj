@@ -79,6 +79,10 @@
     <Compile Include="Puzzle11Assets\MoveMaker.cs" />
     <Compile Include="Puzzle12.cs" />
     <Compile Include="Puzzle13.cs" />
+    <Compile Include="Puzzle14.cs" />
+    <Compile Include="Puzzle15.cs" />
+    <Compile Include="Puzzle15Assets\Disc.cs" />
+    <Compile Include="Puzzle15Assets\KineticSculpture.cs" />
     <Compile Include="Puzzle1b.cs" />
     <Compile Include="Puzzle1.cs" />
     <Compile Include="Puzzle2b.cs" />
