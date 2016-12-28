@@ -163,6 +163,22 @@ namespace AdventOfCodeCSharp
                     var puzzle15b = new Puzzle15();
                     intAnswer = puzzle15b.SolvePuzzlePart2(input);
                     break;
+                case "16":
+                    var puzzle16 = new Puzzle16();
+                    stringAnswer = puzzle16.SolvePuzzle(input, 272);
+                    break;
+                case "16b":
+                    var puzzle16b = new Puzzle16();
+                    stringAnswer = puzzle16b.SolvePuzzle(input, 35651584);
+                    break;
+                case "17":
+                    var puzzle17 = new Puzzle17();
+                    stringAnswer = puzzle17.SolvePuzzle(input);
+                    break;
+                case "17b":
+                    var puzzle17b = new Puzzle17();
+                    intAnswer = puzzle17b.SolvePuzzlePart2(input);
+                    break;
             }
             if (!string.IsNullOrEmpty(stringAnswer))
             {

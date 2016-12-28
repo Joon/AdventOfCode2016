@@ -52,6 +52,8 @@ namespace AdventOfCodeCSharp
 
             while (openSet.Count > 0)
             {
+                VisualizePuzzle(consoleTop, designersFaveNumber, goalX, goalY, cameFrom);
+
                 foreach (var open in openSet)
                 {
                     if (!fScore.ContainsKey(open))
@@ -129,7 +131,7 @@ namespace AdventOfCodeCSharp
             Console.CursorVisible = false;
             int itemWidth = 1;
             if (goalX >= 8)
-                itemWidth = 3;
+                itemWidth = 2;
             Console.Write("".PadLeft(itemWidth));
             for(int i = 0; i < goalX + 2; i++)
             {
@@ -139,7 +141,7 @@ namespace AdventOfCodeCSharp
             for(int y = 0; y <= goalY + 5; y++)
             {
                 Console.Write(y.ToString().PadLeft(itemWidth));
-                for(int x = 0; x < goalX + 5; x++)
+                for(int x = 0; x < goalX + 10; x++)
                 {
                     if (x == goalX && y == goalY)
                         Console.Write('X');
