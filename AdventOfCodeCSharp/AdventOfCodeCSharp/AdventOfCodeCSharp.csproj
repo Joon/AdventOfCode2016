@@ -85,6 +85,8 @@
     <Compile Include="Puzzle15Assets\Disc.cs" />
     <Compile Include="Puzzle15Assets\KineticSculpture.cs" />
     <Compile Include="Puzzle16.cs" />
+    <Compile Include="Puzzle18.cs" />
+    <Compile Include="Puzzle19.cs" />
     <Compile Include="Puzzle1b.cs" />
     <Compile Include="Puzzle1.cs" />
     <Compile Include="Puzzle2b.cs" />

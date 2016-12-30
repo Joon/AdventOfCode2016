@@ -179,6 +179,18 @@ namespace AdventOfCodeCSharp
                     var puzzle17b = new Puzzle17();
                     intAnswer = puzzle17b.SolvePuzzlePart2(input);
                     break;
+                case "18":
+                    var puzzle18 = new Puzzle18();
+                    intAnswer = puzzle18.SolvePuzzle(input);
+                    break;
+                case "18b":
+                    var puzzle18b = new Puzzle18();
+                    intAnswer = puzzle18b.SolvePuzzlePart2(input);
+                    break;
+                case "19":
+                    var puzzle19 = new Puzzle19();
+                    intAnswer = puzzle19.SolvePuzzle("3014603");
+                    break;
             }
             if (!string.IsNullOrEmpty(stringAnswer))
             {
