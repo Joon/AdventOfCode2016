@@ -53,8 +53,6 @@ namespace AdventOfCodeCSharp
         /// The formula to count in 2's once past the largest power looks like this:
         /// when diffToLargestPower > largestPower, solution = largestPower+(numberToSolve-(largestPower*2))*2
         /// </summary>
-        /// <param name="input"></param>
-        /// <returns></returns>
         public int SolvePuzzle2ByFormula(string input)
         {
             int numberToSolve = Convert.ToInt32(input);
