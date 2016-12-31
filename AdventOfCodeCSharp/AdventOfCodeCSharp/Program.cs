@@ -32,6 +32,7 @@ namespace AdventOfCodeCSharp
             }
 
             int intAnswer = -9999;
+            uint uintAnswer = 0;
             long reallyBigIntAnswer = -9999;
             string stringAnswer = "";
             switch (puzzle)
@@ -153,7 +154,6 @@ namespace AdventOfCodeCSharp
                 case "14b":
                     var puzzle14b = new Puzzle14();
                     intAnswer = puzzle14b.SolvePuzzlePart2("jlmsuwbz");
-                    //intAnswer = puzzle14b.SolvePuzzlePart2("abc");
                     break;
                 case "15":
                     var puzzle15 = new Puzzle15();
@@ -195,6 +195,14 @@ namespace AdventOfCodeCSharp
                     var puzzle19b = new Puzzle19();
                     intAnswer = puzzle19b.SolvePuzzle2ByFormula("3014603");
                     break;
+                case "20":
+                    var puzzle20 = new Puzzle20();
+                    uintAnswer = puzzle20.SolvePuzzle(input);
+                    break;
+                case "20b":
+                    var puzzle20b = new Puzzle20();
+                    uintAnswer = puzzle20b.SolvePuzzle2(input);
+                    break;
             }
             if (!string.IsNullOrEmpty(stringAnswer))
             {
@@ -203,6 +211,9 @@ namespace AdventOfCodeCSharp
             else if (reallyBigIntAnswer > 0)
             {
                 Console.WriteLine("Processing complete. Answer: " + reallyBigIntAnswer.ToString());
+            } else if (uintAnswer > 0)
+            {
+                Console.WriteLine("Processing complete. Answer: " + uintAnswer.ToString());
             } else
             {
                 Console.WriteLine("Processing complete. Answer: " + intAnswer.ToString());

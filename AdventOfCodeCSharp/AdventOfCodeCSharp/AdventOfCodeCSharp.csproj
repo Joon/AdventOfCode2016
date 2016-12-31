@@ -89,6 +89,7 @@
     <Compile Include="Puzzle19.cs" />
     <Compile Include="Puzzle1b.cs" />
     <Compile Include="Puzzle1.cs" />
+    <Compile Include="Puzzle20.cs" />
     <Compile Include="Puzzle2b.cs" />
     <Compile Include="Puzzle2.cs" />
     <Compile Include="Puzzle3.cs" />
