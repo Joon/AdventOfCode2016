@@ -191,6 +191,10 @@ namespace AdventOfCodeCSharp
                     var puzzle19 = new Puzzle19();
                     intAnswer = puzzle19.SolvePuzzle("3014603");
                     break;
+                case "19b":
+                    var puzzle19b = new Puzzle19();
+                    intAnswer = puzzle19b.SolvePuzzle2ByFormula("3014603");
+                    break;
             }
             if (!string.IsNullOrEmpty(stringAnswer))
             {
