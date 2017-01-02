@@ -108,12 +108,10 @@ namespace AdventOfCodeCSharp
                     if (i + middleIndex > elves.Count - 1)
                     {
                         int removeIndex = i + middleIndex - elves.Count;
-                        //Console.WriteLine(elves[i].ToString() + " removes " + elves[removeIndex].ToString());
                         elves.RemoveAt(removeIndex);
                     }
                     else
                     {
-                        //Console.WriteLine(elves[i].ToString() + " removes " + elves[i + middleIndex].ToString());
                         elves.RemoveAt(i + middleIndex);
                         i++;
                     }                    

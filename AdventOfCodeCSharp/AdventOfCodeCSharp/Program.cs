@@ -203,6 +203,14 @@ namespace AdventOfCodeCSharp
                     var puzzle20b = new Puzzle20();
                     uintAnswer = puzzle20b.SolvePuzzle2(input);
                     break;
+                case "21":
+                    var puzzle21 = new Puzzle21();
+                    stringAnswer = puzzle21.SolvePuzzle(input, "abcdefgh");
+                    break;
+                case "21b":
+                    var puzzle21b = new Puzzle21();
+                    stringAnswer = puzzle21b.SolvePuzzlePart2(input, "fbgdceah");
+                    break;
             }
             if (!string.IsNullOrEmpty(stringAnswer))
             {
