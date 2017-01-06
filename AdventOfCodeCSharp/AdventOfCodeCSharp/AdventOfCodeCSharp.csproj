@@ -63,6 +63,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Puzzle22.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Puzzle10.cs" />
@@ -91,6 +92,9 @@
     <Compile Include="Puzzle1.cs" />
     <Compile Include="Puzzle20.cs" />
     <Compile Include="Puzzle21.cs" />
+    <Compile Include="Puzzle22Assets\PuzzleSolver.cs" />
+    <Compile Include="Puzzle22Assets\StorageNode.cs" />
+    <Compile Include="Puzzle22Assets\StorageState.cs" />
     <Compile Include="Puzzle2b.cs" />
     <Compile Include="Puzzle2.cs" />
     <Compile Include="Puzzle3.cs" />

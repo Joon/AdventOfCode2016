@@ -211,6 +211,14 @@ namespace AdventOfCodeCSharp
                     var puzzle21b = new Puzzle21();
                     stringAnswer = puzzle21b.SolvePuzzlePart2(input, "fbgdceah");
                     break;
+                case "22":
+                    var puzzle22 = new Puzzle22();
+                    intAnswer = puzzle22.SolvePuzzle(input);
+                    break;
+                case "22b":
+                    var puzzle22b = new Puzzle22();
+                    intAnswer = puzzle22b.SolvePuzzlePart2(input);
+                    break;
             }
             if (!string.IsNullOrEmpty(stringAnswer))
             {
