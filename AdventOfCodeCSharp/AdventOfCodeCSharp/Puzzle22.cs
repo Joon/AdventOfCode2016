@@ -18,7 +18,8 @@ namespace AdventOfCodeCSharp
             /dev/grid/node-x0-y1     88T   65T    23T   73% */
 
             List<StorageNode> nodes = new List<StorageNode>();
-            ParseInputToNodes(input, nodes);
+            int blockerLeft, blockerTop;
+            ParseInputToNodes(input, nodes, out blockerLeft, out blockerTop);
 
             int viableNodeCount = 0;
             HashSet<string> viableNodes = new HashSet<string>();
@@ -45,8 +46,11 @@ namespace AdventOfCodeCSharp
             return viableNodeCount;
         }
 
-        private static void ParseInputToNodes(string input, List<StorageNode> nodes)
+        private static void ParseInputToNodes(string input, List<StorageNode> nodes, out int leftBlockerX, out int leftBlockerY)
         {
+            leftBlockerX = int.MaxValue;
+            leftBlockerY = int.MaxValue;
+
             foreach (string nodeLine in input.Split(Environment.NewLine.ToCharArray(),
                             StringSplitOptions.RemoveEmptyEntries))
             {
@@ -58,6 +62,13 @@ namespace AdventOfCodeCSharp
                 node.Y = Convert.ToInt32(nameParts[2].Substring(1));
                 node.Size = Convert.ToInt32(nodeComponents[1].Substring(0, nodeComponents[1].Length - 1));
                 node.StartSpaceUsed = Convert.ToInt32(nodeComponents[2].Substring(0, nodeComponents[2].Length - 1));
+                if (node.StartSpaceUsed > 200)
+                {
+                    if (node.X < leftBlockerX)
+                        leftBlockerX = node.X;
+                    if (node.Y < leftBlockerY)
+                        leftBlockerY = node.Y;
+                }
                 node.StartSpaceAvailable = Convert.ToInt32(nodeComponents[3].Substring(0, nodeComponents[3].Length - 1));
                 nodes.Add(node);
             }
@@ -82,8 +93,9 @@ namespace AdventOfCodeCSharp
         public int SolvePuzzlePart2(string input)
         {
             List<StorageNode> nodes = new List<StorageNode>();
-            ParseInputToNodes(input, nodes);
-            PuzzleSolver solver = new PuzzleSolver(nodes);
+            int blockerLeft, blockerTop;
+            ParseInputToNodes(input, nodes, out blockerLeft, out blockerTop);
+            PuzzleSolver solver = new PuzzleSolver(nodes, blockerLeft, blockerTop);
             return solver.ShortestPath();
         }
     }

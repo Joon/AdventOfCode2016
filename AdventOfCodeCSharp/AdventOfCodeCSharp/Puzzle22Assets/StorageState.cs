@@ -36,11 +36,17 @@ namespace AdventOfCodeCSharp.Puzzle22Assets
         private List<StorageNode> _nodes;
         private Dictionary<string, int> _storageState;
 
+        private Queue<Tuple<int, int>> _openNodeWayPoints;
+
+        public Queue<Tuple<int, int>> OpenNodeWayPoints { get { return _openNodeWayPoints; } }
+        
+
         public StorageState(List<StorageNode> nodes)
         {
             ID = ++_stateID;
             _nodes = nodes;
             _storageState = new Dictionary<string, int>();
+            _openNodeWayPoints = new Queue<Tuple<int, int>>();
         }
 
         public Dictionary<string, int> State { get { return _storageState; } }
@@ -86,11 +92,32 @@ namespace AdventOfCodeCSharp.Puzzle22Assets
             }
         }
 
+        public Tuple<int, int> CurrentOpenNodeWayPoint(out bool goalNode)
+        {
+            if (OpenNodeWayPoints.Count == 0)
+            {
+                goalNode = true;
+                return new Tuple<int, int>(DesiredDataOnX, DesiredDataOnY);
+            }
+            goalNode = false;
+            return OpenNodeWayPoints.Peek();
+        }
+
+        public void HitWayPoint()
+        {
+            _openNodeWayPoints.Dequeue();
+        }
+
         public StorageState Clone()
         {
             StorageState result = new StorageState(_nodes);
             result.DesiredDataOnX = DesiredDataOnX;
             result.DesiredDataOnY = DesiredDataOnY;
+            foreach (var n in _openNodeWayPoints)
+            {
+                result.OpenNodeWayPoints.Enqueue(n);
+            }
+
             foreach(string s in _storageState.Keys)
             {
                 result._storageState[s] = _storageState[s];

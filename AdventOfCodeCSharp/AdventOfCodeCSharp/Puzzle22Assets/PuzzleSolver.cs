@@ -13,10 +13,14 @@ namespace AdventOfCodeCSharp.Puzzle22Assets
         private List<StorageNode> _nodes;
         private int _lastDistanceFromRoot;
         private int _lastDistanceFromOpen;
+        private int _blockerLeft;
+        private int _blockerTop;
 
-        public PuzzleSolver(List<StorageNode> nodes)
+        public PuzzleSolver(List<StorageNode> nodes, int blockerLeft, int blockerTop)
         {
             _nodes = nodes;
+            _blockerLeft = blockerLeft;
+            _blockerTop = blockerTop;
         }
         
         public int ShortestPath()
@@ -70,6 +74,7 @@ namespace AdventOfCodeCSharp.Puzzle22Assets
 
                 //Console.WriteLine("Chose this state as the best one: " + current.ID);
                 //PrintState(current);
+                //Console.ReadLine();
 
                 if (current.DesiredDataOnX == 0 && current.DesiredDataOnY == 0)
                     return reconstruct_move_depth(cameFrom, current);
@@ -130,7 +135,8 @@ namespace AdventOfCodeCSharp.Puzzle22Assets
         {
             if (toNode != null)
             {
-                if (toNode.SpaceAvailable(current.State) >= fromNode.SpaceUsed(current.State))
+                if (toNode.SpaceAvailable(current.State) >= fromNode.SpaceUsed(current.State) &&
+                    fromNode.SpaceAvailable(current.State) >= toNode.SpaceUsed(current.State))
                 {
                     StorageState moveResult = current.Clone();
                     // Are we moving the goal data?
@@ -183,7 +189,7 @@ namespace AdventOfCodeCSharp.Puzzle22Assets
                     if (tempCurrent.DesiredDataOnX == x && tempCurrent.DesiredDataOnY == y)
                         display += "(G)";
                         
-                    line.Append(display.PadRight(8));
+                    line.Append(display.PadRight(6));
                 }
                 Console.WriteLine(line.ToString());
             }
@@ -193,35 +199,30 @@ namespace AdventOfCodeCSharp.Puzzle22Assets
         {
             // Number of spots that an open node is away from the current desired state
             int openDistance = 200;
-            string openDirection = "";
+            int openGoalX, openGoalY = 0;
+            bool isGoalNode;
+            Tuple<int, int> moveOpenTo = startState.CurrentOpenNodeWayPoint(out isGoalNode);
+            openGoalX = moveOpenTo.Item1;
+            openGoalY = moveOpenTo.Item2;
             for (int x = 0; x < MaxX(); x++)
             {
-                if (Math.Abs(startState.DesiredDataOnX) - x > openDistance)
-                    break;
                 for(int y = 0; y < MaxY(); y++)
                 {
-                    if (Math.Abs(startState.DesiredDataOnX - x) + Math.Abs(startState.DesiredDataOnY - y) > openDistance)
-                        break;
                     StorageNode checkNode = FindNode(x, y);
-                    StorageNode sourceNode = FindNode(startState.DesiredDataOnX, startState.DesiredDataOnY);
-                    if (checkNode.SpaceAvailable(startState.State) > sourceNode.SpaceUsed(startState.State))
+                    StorageNode sourceNode = FindNode(openGoalX, openGoalY);
+                    if (checkNode.SpaceAvailable(startState.State) > sourceNode.SpaceUsed(startState.State) &&
+                        sourceNode.SpaceAvailable(startState.State) > checkNode.SpaceUsed(startState.State))
                     {
-                        openDirection = "";
-                        if (checkNode.X < sourceNode.X)
-                            openDirection += "L";
-                        if (checkNode.X > sourceNode.X)
-                            openDirection += "R";
-                        if (checkNode.Y < sourceNode.Y)
-                            openDirection += "U";
-                        if (checkNode.Y > sourceNode.Y)
-                            openDirection += "D";
-                        openDistance = Math.Abs(startState.DesiredDataOnX - x) + Math.Abs(startState.DesiredDataOnY - y);
-                        if (openDistance < 2)
+                        int candidateOpenDistance = Math.Abs(openGoalX - x) + (Math.Abs(openGoalY - y));
+                        if (!isGoalNode)
                         {
-                            // Double open distance value if it is close to the node and in the wrong direction. Prevents false positives
-                            // from being processed
-                            if (openDirection.Contains("R") || openDirection.Contains("D"))
-                                openDistance = openDistance + openDistance;
+                            candidateOpenDistance += 50;
+                        }
+                        if (candidateOpenDistance < openDistance)
+                        {
+                            openDistance = candidateOpenDistance;
+                            if (openDistance == 50)
+                                startState.HitWayPoint();
                         }
                     }
                 }
@@ -233,7 +234,7 @@ namespace AdventOfCodeCSharp.Puzzle22Assets
             _lastDistanceFromRoot = distanceFromRoot;            
 
             // score increases exponentialy with distance
-            return (openDistance * openDistance) + (distanceFromRoot * distanceFromRoot);
+            return (openDistance * openDistance * 10) + (distanceFromRoot * distanceFromRoot);
         }
 
         private StorageNode FindNode(int x, int y)
@@ -265,7 +266,8 @@ namespace AdventOfCodeCSharp.Puzzle22Assets
             {
                 result.State[n.NodeName] = n.StartSpaceUsed;
             }
-            
+            result.OpenNodeWayPoints.Enqueue(new Tuple<int, int>(_blockerLeft - 1, _blockerTop - 1));
+
             result.DesiredDataOnX = MaxX();
             result.DesiredDataOnY = 0;
 
