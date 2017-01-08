@@ -227,6 +227,18 @@ namespace AdventOfCodeCSharp
                     var puzzle23b = new Puzzle23();
                     intAnswer = puzzle23b.SolvePuzzle(input, 12);
                     break;
+                case "24":
+                    var puzzle24 = new Puzzle24();
+                    intAnswer = puzzle24.SolvePuzzle(input);
+                    break;
+                case "24b":
+                    var puzzle24b = new Puzzle24();
+                    intAnswer = puzzle24b.SolvePuzzlePart2(input);
+                    break;
+                case "25":
+                    var puzzle25 = new Puzzle25();
+                    intAnswer = puzzle25.SolvePuzzle(input);
+                    break;
             }
             if (!string.IsNullOrEmpty(stringAnswer))
             {

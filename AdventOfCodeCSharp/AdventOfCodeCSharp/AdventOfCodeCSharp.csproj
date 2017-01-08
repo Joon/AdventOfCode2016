@@ -96,6 +96,13 @@
     <Compile Include="Puzzle22Assets\PuzzleSolver.cs" />
     <Compile Include="Puzzle22Assets\StorageNode.cs" />
     <Compile Include="Puzzle22Assets\StorageState.cs" />
+    <Compile Include="Puzzle24.cs" />
+    <Compile Include="Puzzle24\FloorPlan.cs" />
+    <Compile Include="Puzzle24\NodeRoute.cs" />
+    <Compile Include="Puzzle24\PuzzleController.cs" />
+    <Compile Include="Puzzle24\RouteSolver.cs" />
+    <Compile Include="Puzzle24\VisitNode.cs" />
+    <Compile Include="Puzzle25.cs" />
     <Compile Include="Puzzle2b.cs" />
     <Compile Include="Puzzle2.cs" />
     <Compile Include="Puzzle3.cs" />
@@ -117,9 +124,7 @@
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Puzzle24\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
