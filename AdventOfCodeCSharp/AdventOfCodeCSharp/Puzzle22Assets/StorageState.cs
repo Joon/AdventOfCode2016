@@ -92,14 +92,16 @@ namespace AdventOfCodeCSharp.Puzzle22Assets
             }
         }
 
-        public Tuple<int, int> CurrentOpenNodeWayPoint(out bool goalNode)
+        public Tuple<int, int> CurrentOpenNodeWayPoint(out bool goalNode, out int depth)
         {
             if (OpenNodeWayPoints.Count == 0)
             {
                 goalNode = true;
+                depth = 0;
                 return new Tuple<int, int>(DesiredDataOnX, DesiredDataOnY);
             }
             goalNode = false;
+            depth = OpenNodeWayPoints.Count;
             return OpenNodeWayPoints.Peek();
         }
 

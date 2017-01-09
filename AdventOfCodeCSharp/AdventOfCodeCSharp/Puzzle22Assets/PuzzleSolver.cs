@@ -201,7 +201,8 @@ namespace AdventOfCodeCSharp.Puzzle22Assets
             int openDistance = 200;
             int openGoalX, openGoalY = 0;
             bool isGoalNode;
-            Tuple<int, int> moveOpenTo = startState.CurrentOpenNodeWayPoint(out isGoalNode);
+            int depth;
+            Tuple<int, int> moveOpenTo = startState.CurrentOpenNodeWayPoint(out isGoalNode, out depth);
             openGoalX = moveOpenTo.Item1;
             openGoalY = moveOpenTo.Item2;
             for (int x = 0; x < MaxX(); x++)
@@ -216,12 +217,12 @@ namespace AdventOfCodeCSharp.Puzzle22Assets
                         int candidateOpenDistance = Math.Abs(openGoalX - x) + (Math.Abs(openGoalY - y));
                         if (!isGoalNode)
                         {
-                            candidateOpenDistance += 50;
+                            candidateOpenDistance += (50 * depth);
                         }
                         if (candidateOpenDistance < openDistance)
                         {
                             openDistance = candidateOpenDistance;
-                            if (openDistance == 50)
+                            if (openDistance == (50 * depth))
                                 startState.HitWayPoint();
                         }
                     }
@@ -267,6 +268,7 @@ namespace AdventOfCodeCSharp.Puzzle22Assets
                 result.State[n.NodeName] = n.StartSpaceUsed;
             }
             result.OpenNodeWayPoints.Enqueue(new Tuple<int, int>(_blockerLeft - 1, _blockerTop - 1));
+            result.OpenNodeWayPoints.Enqueue(new Tuple<int, int>(_blockerLeft / 2, 0));
 
             result.DesiredDataOnX = MaxX();
             result.DesiredDataOnY = 0;

@@ -6,9 +6,6 @@ using System.Threading.Tasks;
 
 namespace AdventOfCodeCSharp
 {
-
-
-
     public class Puzzle25
     {
         
